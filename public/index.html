@@ -426,7 +426,7 @@ async function fetchData() {
     const p1 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params: P, market: currentMarket, interval: '15m', range: '20d', period1, period2 })
+      body: JSON.stringify({ params: P, market: currentMarket, interval: '15m', range: '60d', period1, period2 })
     }).then(r => r.json());
     
     const p2 = fetch('/api/screener', {
@@ -533,7 +533,7 @@ function sortAndRender(){
   
   const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
   dataIntraday.forEach(r => {
-    r.estMoProfit = startAmount * ((r.netPct * 1.5) / 100);
+    r.estMoProfit = startAmount * ((r.netPct / 2) / 100);
   });
   dataShortTerm.forEach(r => {
     r.estMoProfit = startAmount * ((r.netPct / 60) / 100);
