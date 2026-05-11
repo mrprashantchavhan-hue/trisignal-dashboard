@@ -576,6 +576,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
   let bestParams = null;
   let bestScore = -999999;
   let bestProfile = { wr: 0, pf: 0 };
+  const topResults = [];
   
   for (const emaF of emaFs) {
     for (const emaS of emaSs) {
@@ -595,7 +596,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
                   totalWR += r.winRate;
                   sumTrades += r.trades;
                   totalNetPct += r.netPct;
-                  assetNetPcts.push(r.netPct);
+                  assetNetPcts.push({ s: item.st.s, netPct: r.netPct });
                   validAssets++;
                 }
               }
@@ -612,10 +613,15 @@ app.post('/api/optimize', express.json(), async (req, res) => {
               else if (goal === 'balanced') score = avgPF * (avgWR / 100);
               else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
               else if (goal === 'double_capital') {
-                assetNetPcts.sort((a, b) => b - a);
+                assetNetPcts.sort((a, b) => b.netPct - a.netPct);
                 // Score based on the sum of top 3 assets (portfolio combination)
-                score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val, 0);
+                score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val.netPct, 0);
               }
+              
+              assetNetPcts.sort((a, b) => b.netPct - a.netPct);
+              const top3Stocks = assetNetPcts.slice(0, 3).map(x => x.s);
+              
+              topResults.push({ score, params, profile: { wr: avgWR, pf: avgPF }, top3Stocks });
               
               if (score > bestScore) {
                 bestScore = score;
@@ -627,6 +633,20 @@ app.post('/api/optimize', express.json(), async (req, res) => {
         }
       }
     }
+  }
+
+  // Sort and filter for unique combinations of top 3 stocks
+  topResults.sort((a, b) => b.score - a.score);
+  const uniqueSets = [];
+  const seenCombinations = new Set();
+  
+  for (const res of topResults) {
+    const comboKey = [...res.top3Stocks].sort().join(',');
+    if (!seenCombinations.has(comboKey)) {
+      seenCombinations.add(comboKey);
+      uniqueSets.push(res);
+    }
+    if (uniqueSets.length >= 3) break;
   }
 
   if (!bestParams) {
@@ -650,7 +670,12 @@ app.post('/api/optimize', express.json(), async (req, res) => {
 
   res.json({
     params: bestParams,
-    aiProfile: { name, desc, expectedWr: bestProfile.wr.toFixed(1), expectedPf: bestProfile.pf.toFixed(2) }
+    aiProfile: { name, desc, expectedWr: bestProfile.wr.toFixed(1), expectedPf: bestProfile.pf.toFixed(2) },
+    top3Sets: uniqueSets.map(r => ({
+      params: r.params,
+      stocks: r.top3Stocks,
+      score: r.score.toFixed(1)
+    }))
   });
 });
 

@@ -525,31 +525,57 @@ async function autoOptimize() {
     const data = await res.json();
     const optimalP = data.params;
     const ai = data.aiProfile;
+    const top3Sets = data.top3Sets;
     
     if (data.error) throw new Error(data.error);
     
     Object.assign(P, optimalP);
     
-    // Update sliders UI
-    document.querySelector('input[oninput*="emaF"]').value = P.emaF; document.getElementById('v-ef').textContent = P.emaF;
-    document.querySelector('input[oninput*="emaS"]').value = P.emaS; document.getElementById('v-es').textContent = P.emaS;
-    document.querySelector('input[oninput*="macdF"]').value = P.macdF; document.getElementById('v-mf').textContent = P.macdF;
-    document.querySelector('input[oninput*="macdS"]').value = P.macdS; document.getElementById('v-msd').textContent = P.macdS;
-    document.querySelector('input[oninput*="rsiL"]').value = P.rsiL; document.getElementById('v-rl').textContent = P.rsiL;
-    document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow; document.getElementById('v-rlw').textContent = P.rsiLow;
-    document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh; document.getElementById('v-rh').textContent = P.rsiHigh;
-    document.querySelector('input[oninput*="atrM"]').value = P.atrM; document.getElementById('v-am').textContent = P.atrM.toFixed(1);
-    document.querySelector('input[oninput*="rrR"]').value = P.rrR; document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
-    document.querySelector('input[oninput*="timeStop"]').value = P.timeStop; document.getElementById('v-ts').textContent = P.timeStop;
-    document.querySelector('input[oninput*="minS"]').value = P.minS; document.getElementById('v-ms-c').textContent = P.minS + '/5';
-    document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
-    document.querySelector('input[oninput*="volM"]').value = P.volM; document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
+    window.updateSlidersUI = function() {
+      document.querySelector('input[oninput*="emaF"]').value = P.emaF; document.getElementById('v-ef').textContent = P.emaF;
+      document.querySelector('input[oninput*="emaS"]').value = P.emaS; document.getElementById('v-es').textContent = P.emaS;
+      document.querySelector('input[oninput*="macdF"]').value = P.macdF; document.getElementById('v-mf').textContent = P.macdF;
+      document.querySelector('input[oninput*="macdS"]').value = P.macdS; document.getElementById('v-msd').textContent = P.macdS;
+      document.querySelector('input[oninput*="rsiL"]').value = P.rsiL; document.getElementById('v-rl').textContent = P.rsiL;
+      document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow; document.getElementById('v-rlw').textContent = P.rsiLow;
+      document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh; document.getElementById('v-rh').textContent = P.rsiHigh;
+      document.querySelector('input[oninput*="atrM"]').value = P.atrM; document.getElementById('v-am').textContent = P.atrM.toFixed(1);
+      document.querySelector('input[oninput*="rrR"]').value = P.rrR; document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
+      document.querySelector('input[oninput*="timeStop"]').value = P.timeStop; document.getElementById('v-ts').textContent = P.timeStop;
+      document.querySelector('input[oninput*="minS"]').value = P.minS; document.getElementById('v-ms-c').textContent = P.minS + '/5';
+      document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
+      document.querySelector('input[oninput*="volM"]').value = P.volM; document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
+    };
+    
+    updateSlidersUI();
+    
+    window.applyAndFetch = function(paramsJson) {
+      const params = JSON.parse(paramsJson);
+      Object.assign(P, params);
+      updateSlidersUI();
+      fetchData();
+    };
     
     // Show AI Profile
     if (ai) {
       document.getElementById('ai-profile').style.display = 'block';
       document.getElementById('ai-name').textContent = ai.name;
-      document.getElementById('ai-desc').textContent = ai.desc;
+      
+      let descHtml = ai.desc;
+      if (top3Sets && top3Sets.length > 0) {
+        descHtml += `<div style="margin-top:12px;"><strong>Top 3 Combinations:</strong>`;
+        top3Sets.forEach((set, idx) => {
+          const stocksStr = set.stocks.map(s => `<span style="color:#FFD700;font-weight:bold;">${s}</span>`).join(', ');
+          const paramsStr = JSON.stringify(set.params).replace(/"/g, '&quot;');
+          descHtml += `<div style="margin-top:6px; padding:6px; background:#21262d; border-radius:4px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+            <span>Set ${idx + 1}: ${stocksStr} (Return: ${set.score}%)</span>
+            <button class="run-btn" style="background:#30363d;color:#FFD700;border:1px solid #FFD700;padding:2px 6px;font-size:10px;border-radius:4px;" onclick="applyAndFetch('${paramsStr}')">Apply</button>
+          </div>`;
+        });
+        descHtml += `</div>`;
+      }
+      
+      document.getElementById('ai-desc').innerHTML = descHtml;
       document.getElementById('ai-wr').textContent = ai.expectedWr;
       document.getElementById('ai-pf').textContent = ai.expectedPf;
     }
