@@ -686,6 +686,9 @@ function openTradesModal(symbol) {
         charges = startAmount * 0.002; // 0.2% fee estimate
       } else {
         charges = 40; // Flat fee estimate
+        if (isIntraday) {
+          charges += effectiveCapital * 0.00025; // Add 0.025% for STT/volume charges
+        }
       }
       
       const netProfit = grossProfit - tax - charges;
