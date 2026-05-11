@@ -405,7 +405,8 @@ function backtest(px, ts, vl, params) {
     signal: currentSignal,
     signalDetails,
     tradeDetails: tradeDetails.reverse(),
-    sigE: entry, sigTP: tp, sigSL: stpl
+    sigE: entry, sigTP: tp, sigSL: stpl,
+    sigTime: tradeDir !== 0 ? ts[eb] : null
   };
 }
 

@@ -560,16 +560,23 @@ function renderTable(data, targetId){
     const isShort = r.signal.includes('SELL') || r.signal.includes('SHORT');
     const formattedDetails = formatSignal(r.signalDetails, isShort);
     
+    const formatTime = (ts) => {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+    };
+    const timeStr = formatTime(r.sigTime);
+    
     if (r.signal === 'BUY_NEW') {
-      sigHTML = `<div style="color:#3FB950; font-weight:bold;">🟢 BUY ENTRY</div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `<div style="color:#3FB950; font-weight:bold;">🟢 BUY ENTRY <span style="color:var(--color-text-tertiary);font-size:10px">at ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_LONG') {
-      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD LONG</div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD LONG <span style="color:var(--color-text-tertiary);font-size:10px">since ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_LONG') {
       sigHTML = `<div style="color:#F85149; font-weight:bold;">🔴 EXIT LONG</div><div style="font-size:10px; color:var(--color-text-secondary); margin-top:4px;">${r.signalDetails}</div>`;
     } else if (r.signal === 'SELL_NEW') {
-      sigHTML = `<div style="color:#BF40BF; font-weight:bold;">🟣 SELL SHORT</div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `<div style="color:#BF40BF; font-weight:bold;">🟣 SELL SHORT <span style="color:var(--color-text-tertiary);font-size:10px">at ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_SHORT') {
-      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD SHORT</div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD SHORT <span style="color:var(--color-text-tertiary);font-size:10px">since ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_SHORT') {
       sigHTML = `<div style="color:#F85149; font-weight:bold;">🔴 EXIT SHORT</div><div style="font-size:10px; color:var(--color-text-secondary); margin-top:4px;">${r.signalDetails}</div>`;
     } else {
@@ -630,7 +637,7 @@ function openTradesModal(symbol) {
       const formatTime = (ts) => {
         if (!ts) return '-';
         const d = new Date(ts);
-        return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+        return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
       };
       
       let holdingTime = '-';
