@@ -352,6 +352,15 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         <h3 style="font-size:12px; margin-top:0; color:var(--color-text-secondary); text-transform:uppercase;">Signal Confidence</h3>
         <div class="cg"><label style="width:100px;">Min Score</label><input type="range" min="1" max="5" step="1" value="3" oninput="P.minS=+this.value;document.getElementById('v-ms-c').textContent=this.value+'/5';schedule()"><span id="v-ms-c">3/5</span><span style="margin-left:10px;font-size:10px;color:var(--color-text-tertiary)">Out of max 5 filters. Score > 3 requires BB or Volume to be enabled.</span></div>
       </div>
+
+      <div style="background:var(--color-background-secondary); padding:12px; border-radius:8px; grid-column: 1 / -1;">
+        <h3 style="font-size:12px; margin-top:0; color:var(--color-text-secondary); text-transform:uppercase;">Strategy Presets</h3>
+        <div style="display:flex; gap:10px;">
+          <button class="run-btn" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d;" onclick="applyPreset('scalping')">🏎️ Scalping</button>
+          <button class="run-btn" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d;" onclick="applyPreset('swing')">🏌️ Swing Trading</button>
+          <button class="run-btn" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d;" onclick="applyPreset('trend')">📈 Trend Following</button>
+        </div>
+      </div>
       
       <div id="ai-profile" style="display:none; background:rgba(255, 215, 0, 0.1); border:1px solid rgba(255, 215, 0, 0.3); padding:15px; border-radius:8px; grid-column: 1 / -1; color:#D4AF37;">
         <h3 style="margin-top:0; margin-bottom:5px; font-size:14px;">🧠 AI Generated Strategy: <span id="ai-name" style="font-weight:bold; color:#FFD700;"></span></h3>
@@ -366,6 +375,35 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
 </dialog>
 
 <script>
+function applyPreset(type) {
+  if (type === 'scalping') {
+    P.emaF = 5; P.emaS = 13; P.macdF = 9; P.macdS = 21; P.rsiL = 14; P.rsiLow = 30; P.rsiHigh = 70; P.atrM = 1.5; P.rrR = 1.5; P.timeStop = 10;
+  } else if (type === 'swing') {
+    P.emaF = 20; P.emaS = 50; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 40; P.rsiHigh = 60; P.atrM = 2.5; P.rrR = 2.0; P.timeStop = 50;
+  } else if (type === 'trend') {
+    P.emaF = 50; P.emaS = 100; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 35; P.rsiHigh = 65; P.atrM = 3.0; P.rrR = 3.0; P.timeStop = 100;
+  }
+  
+  const updates = [
+    { id: 'v-ef', val: P.emaF }, { id: 'v-es', val: P.emaS },
+    { id: 'v-mf', val: P.macdF }, { id: 'v-msd', val: P.macdS },
+    { id: 'v-rl', val: P.rsiL }, { id: 'v-rlw', val: P.rsiLow }, { id: 'v-rh', val: P.rsiHigh },
+    { id: 'v-am', val: P.atrM }, { id: 'v-rr', val: P.rrR }, { id: 'v-ts', val: P.timeStop }
+  ];
+  
+  updates.forEach(u => {
+    const el = document.getElementById(u.id);
+    if (el) {
+      el.textContent = u.val;
+      if (el.previousElementSibling) {
+        el.previousElementSibling.value = u.val;
+      }
+    }
+  });
+
+  schedule();
+}
+
 const formatCurrency = (num) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(num);
 
 function formatSignal(raw, isShort) {
