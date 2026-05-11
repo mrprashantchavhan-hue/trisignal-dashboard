@@ -284,7 +284,7 @@ function calcBB(px, p, std) {
 }
 
 function backtest(px, ts, vl, params) {
-  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, volM=0, direction='BOTH' } = params;
+  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, volM=0, direction='BOTH', interval='15m' } = params;
   if (!px || px.length < Math.max(emaS + 5, 35)) {
     return { trades: 0, wins: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0, signal: 'FLAT', signalDetails: '', tradeDetails: [] };
   }
@@ -305,6 +305,26 @@ function backtest(px, ts, vl, params) {
   for (let i = start; i < N; i++) {
     let closedOnThisBar = false;
     let closeReason = '';
+
+    const isLastBarOfDay = (i === N - 1) || (new Date(ts[i]).getDate() !== new Date(ts[i+1]).getDate());
+    
+    if (tradeDir !== 0 && interval === '15m' && isLastBarOfDay) {
+      const pnl = tradeDir === 1 ? (px[i] - entry) : (entry - px[i]);
+      trades.push({ 
+        type: tradeDir === 1 ? 'LONG' : 'SHORT', 
+        win: pnl > 0, 
+        entry, 
+        exit: px[i], 
+        pnl, 
+        bars: i - eb, 
+        entryTime: ts[eb], 
+        exitTime: ts[i],
+        closeReason: 'EOD Square-off'
+      });
+      tradeDir = 0;
+      closedOnThisBar = true;
+      continue;
+    }
 
     if (tradeDir !== 0) {
       if (tradeDir === 1) {
@@ -484,8 +504,9 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
 function computeResults(cacheKey, params) {
   const rawData = rawCache[cacheKey] || [];
+  const interval = cacheKey.includes('_15m_') ? '15m' : '1d';
   return rawData.map(item => {
-    const r = backtest(item.px, item.ts, item.vl, params);
+    const r = backtest(item.px, item.ts, item.vl, {...params, interval});
     const { g, n } = getGrade(r);
     
     let chgPct = 0;
@@ -568,7 +589,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
               let totalPF = 0, totalWR = 0, validAssets = 0, sumTrades = 0, totalNetPct = 0;
               const assetNetPcts = [];
               for (const item of rawData) {
-                const r = backtest(item.px, item.ts, item.vl, params);
+                const r = backtest(item.px, item.ts, item.vl, {...params, interval});
                 if (r.trades > 0) {
                   totalPF += r.pf;
                   totalWR += r.winRate;
