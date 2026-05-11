@@ -565,13 +565,14 @@ app.post('/api/optimize', express.json(), async (req, res) => {
             for (const volM of volMs) {
               const params = { emaF, emaS, atrM, rrR, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode, volM };
               
-              let totalPF = 0, totalWR = 0, validAssets = 0, sumTrades = 0;
+              let totalPF = 0, totalWR = 0, validAssets = 0, sumTrades = 0, totalNetPct = 0;
               for (const item of rawData) {
                 const r = backtest(item.px, item.ts, item.vl, params);
                 if (r.trades > 0) {
                   totalPF += r.pf;
                   totalWR += r.winRate;
                   sumTrades += r.trades;
+                  totalNetPct += r.netPct;
                   validAssets++;
                 }
               }
@@ -580,12 +581,14 @@ app.post('/api/optimize', express.json(), async (req, res) => {
               const avgPF = totalPF / validAssets;
               const avgWR = totalWR / validAssets;
               const avgTrades = sumTrades / validAssets;
+              const avgNetPct = totalNetPct / validAssets;
               
               let score = -1;
               if (goal === 'max_pf') score = avgPF;
               else if (goal === 'max_wr') score = avgWR;
               else if (goal === 'balanced') score = avgPF * (avgWR / 100);
               else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
+              else if (goal === 'double_capital') score = avgNetPct; // Maximize average net profit %
               
               if (score > bestScore) {
                 bestScore = score;
