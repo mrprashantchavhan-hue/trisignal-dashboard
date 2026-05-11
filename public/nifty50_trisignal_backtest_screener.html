@@ -1,0 +1,367 @@
+
+<style>
+*{box-sizing:border-box}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.ctrl-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:var(--color-background-secondary);border-radius:8px;margin-bottom:12px}
+.cg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)}
+.cg input[type=range]{width:72px}
+.cg span{min-width:30px;font-weight:500;font-size:12px;color:var(--color-text-primary)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.card{background:var(--color-background-secondary);border-radius:8px;padding:10px 12px}
+.cl{font-size:10px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.cv{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.cs{font-size:10px;color:var(--color-text-tertiary);margin-top:1px}
+.tbl-wrap{overflow-x:auto;border:0.5px solid var(--color-border-tertiary);border-radius:8px;margin-top:12px;max-height:480px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+thead tr{position:sticky;top:0;z-index:2}
+th{padding:8px 8px;text-align:left;font-size:11px;font-weight:500;color:var(--color-text-tertiary);border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;white-space:nowrap;background:var(--color-background-secondary);user-select:none}
+th:hover{color:var(--color-text-primary)}
+td{padding:7px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--color-background-secondary)}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500}
+.bA{background:#EAF3DE;color:#27500A}.bB{background:#E1F5EE;color:#085041}
+.bC{background:#FAEEDA;color:#633806}.bD{background:#FCEBEB;color:#791F1F}
+.win{color:#1D9E75;font-weight:500}.loss{color:#E24B4A;font-weight:500}
+.sbadge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;background:var(--color-background-secondary);color:var(--color-text-tertiary);border:0.5px solid var(--color-border-tertiary)}
+.ask-btn{font-size:10px;padding:2px 7px;border-radius:5px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-secondary)}
+.ask-btn:hover{background:var(--color-background-secondary)}
+.slbl{font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px}
+.run-btn{font-size:12px;padding:5px 12px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-primary);white-space:nowrap}
+.run-btn:hover{background:var(--color-background-secondary)}
+.sa{opacity:.4;font-size:10px}
+th.sorted .sa{opacity:1;color:var(--color-text-primary)}
+.filter-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.fpill{padding:4px 10px;border-radius:14px;border:0.5px solid var(--color-border-secondary);font-size:11px;cursor:pointer;color:var(--color-text-secondary);background:transparent}
+.fpill.on{background:var(--color-background-info);color:var(--color-text-info);border-color:transparent}
+</style>
+
+<h2 class="sr-only">Nifty 50 TriSignal backtest screener — ranked leaderboard of all 50 stocks by profit factor, win rate, and return</h2>
+
+<div class="ctrl-row">
+  <div class="cg"><label>EMA fast</label><input type="range" min="3" max="20" step="1" value="9" id="p-ef" oninput="P.emaF=+this.value;document.getElementById('v-ef').textContent=this.value;schedule()"><span id="v-ef">9</span></div>
+  <div class="cg"><label>EMA slow</label><input type="range" min="10" max="50" step="1" value="21" id="p-es" oninput="P.emaS=+this.value;document.getElementById('v-es').textContent=this.value;schedule()"><span id="v-es">21</span></div>
+  <div class="cg"><label>ATR ×</label><input type="range" min="1" max="3" step="0.1" value="2" id="p-am" oninput="P.atrM=+this.value;document.getElementById('v-am').textContent=(+this.value).toFixed(1);schedule()"><span id="v-am">2.0</span></div>
+  <div class="cg"><label>RR ratio</label><input type="range" min="1" max="3" step="0.1" value="2" id="p-rr" oninput="P.rrR=+this.value;document.getElementById('v-rr').textContent=(+this.value).toFixed(1);schedule()"><span id="v-rr">2.0</span></div>
+  <div class="cg"><label>Min score</label><input type="range" min="2" max="3" step="1" value="2" id="p-ms" oninput="P.minS=+this.value;document.getElementById('v-ms').textContent=this.value+'/3';schedule()"><span id="v-ms">2/3</span></div>
+  <button class="run-btn" onclick="runAll()"><i class="ti ti-player-play" style="font-size:12px" aria-hidden="true"></i> Rerun</button>
+</div>
+
+<div class="cards">
+  <div class="card"><div class="cl">Best stock</div><div class="cv" id="c-best">—</div><div class="cs" id="c-bpf">PF —</div></div>
+  <div class="card"><div class="cl">Avg win rate</div><div class="cv" id="c-wr">—</div><div class="cs">across 50 stocks</div></div>
+  <div class="card"><div class="cl">Grade A stocks</div><div class="cv" id="c-ga">—</div><div class="cs" id="c-gasub">ready to trade</div></div>
+  <div class="card"><div class="cl">Avg profit factor</div><div class="cv" id="c-pf">—</div><div class="cs">1.5+ is strong</div></div>
+</div>
+
+<div class="slbl">Top 10 — profit factor</div>
+<div style="position:relative;width:100%;height:300px">
+  <canvas id="pfChart" role="img" aria-label="Horizontal bar chart of top 10 Nifty 50 stocks ranked by profit factor from TriSignal backtest">Loading...</canvas>
+</div>
+
+<div class="slbl">Full leaderboard — all 50 stocks <span style="font-weight:400">(click column headers to sort)</span></div>
+<div class="filter-row" id="sect-filters"></div>
+<div class="tbl-wrap">
+<table>
+  <thead><tr>
+    <th style="width:32px" data-k="rank"># <span class="sa">↕</span></th>
+    <th style="width:92px" data-k="sym">Symbol <span class="sa">↕</span></th>
+    <th style="width:82px" data-k="sec">Sector <span class="sa">↕</span></th>
+    <th style="width:52px" data-k="trades">Trades <span class="sa">↕</span></th>
+    <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
+    <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
+    <th style="width:68px" data-k="netPct">Return % <span class="sa">↕</span></th>
+    <th style="width:58px" data-k="maxDD">Max DD <span class="sa">↕</span></th>
+    <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
+    <th style="width:80px">Signal</th>
+    <th style="width:58px">Action</th>
+  </tr></thead>
+  <tbody id="tbl-body"></tbody>
+</table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const STOCKS = [
+  {s:'ADANIENT',  n:'Adani Enterprises',   sec:'Conglomerate', p:2800, v:0.44, d:0.14, seed:1},
+  {s:'ADANIPORTS',n:'Adani Ports',          sec:'Infra',        p:1380, v:0.38, d:0.13, seed:2},
+  {s:'RELIANCE',  n:'Reliance Industries', sec:'Energy',       p:2900, v:0.24, d:0.12, seed:3},
+  {s:'ONGC',      n:'ONGC',                sec:'Energy',       p:270,  v:0.32, d:0.10, seed:4},
+  {s:'BPCL',      n:'BPCL',                sec:'Energy',       p:620,  v:0.33, d:0.09, seed:5},
+  {s:'IOC',       n:'Indian Oil Corp',     sec:'Energy',       p:175,  v:0.31, d:0.09, seed:6},
+  {s:'HDFCBANK',  n:'HDFC Bank',           sec:'Banking',      p:1650, v:0.22, d:0.13, seed:7},
+  {s:'ICICIBANK', n:'ICICI Bank',          sec:'Banking',      p:1250, v:0.26, d:0.15, seed:8},
+  {s:'SBIN',      n:'State Bank of India', sec:'Banking',      p:800,  v:0.34, d:0.12, seed:9},
+  {s:'AXISBANK',  n:'Axis Bank',           sec:'Banking',      p:1100, v:0.31, d:0.13, seed:10},
+  {s:'KOTAKBANK', n:'Kotak Mahindra Bank', sec:'Banking',      p:1800, v:0.24, d:0.10, seed:11},
+  {s:'INDUSINDBK',n:'IndusInd Bank',       sec:'Banking',      p:1400, v:0.38, d:0.08, seed:12},
+  {s:'BAJFINANCE',n:'Bajaj Finance',       sec:'NBFC',         p:7200, v:0.35, d:0.14, seed:13},
+  {s:'BAJAJFINSV',n:'Bajaj Finserv',       sec:'NBFC',         p:1700, v:0.30, d:0.12, seed:14},
+  {s:'SHRIRAM',   n:'Shriram Finance',     sec:'NBFC',         p:2700, v:0.32, d:0.13, seed:15},
+  {s:'TCS',       n:'TCS',                 sec:'IT',           p:4200, v:0.20, d:0.12, seed:16},
+  {s:'INFY',      n:'Infosys',             sec:'IT',           p:1800, v:0.22, d:0.11, seed:17},
+  {s:'WIPRO',     n:'Wipro',               sec:'IT',           p:560,  v:0.24, d:0.10, seed:18},
+  {s:'HCLTECH',   n:'HCL Technologies',    sec:'IT',           p:1700, v:0.23, d:0.13, seed:19},
+  {s:'TECHM',     n:'Tech Mahindra',       sec:'IT',           p:1600, v:0.27, d:0.10, seed:20},
+  {s:'LTIM',      n:'LTIMindtree',         sec:'IT',           p:5800, v:0.26, d:0.12, seed:21},
+  {s:'MARUTI',    n:'Maruti Suzuki',       sec:'Auto',         p:12000,v:0.24, d:0.14, seed:22},
+  {s:'TATAMOTORS',n:'Tata Motors',         sec:'Auto',         p:970,  v:0.42, d:0.18, seed:23},
+  {s:'M&M',       n:'Mahindra & Mahindra', sec:'Auto',         p:2900, v:0.30, d:0.16, seed:24},
+  {s:'HEROMOTOCO',n:'Hero MotoCorp',       sec:'Auto',         p:5500, v:0.25, d:0.11, seed:25},
+  {s:'EICHERMOT', n:'Eicher Motors',       sec:'Auto',         p:4800, v:0.27, d:0.12, seed:26},
+  {s:'BAJAJ-AUTO',n:'Bajaj Auto',          sec:'Auto',         p:9500, v:0.25, d:0.13, seed:27},
+  {s:'HINDUNILVR',n:'Hindustan Unilever',  sec:'FMCG',         p:2400, v:0.16, d:0.09, seed:28},
+  {s:'NESTLEIND', n:'Nestle India',        sec:'FMCG',         p:2400, v:0.17, d:0.09, seed:29},
+  {s:'BRITANNIA', n:'Britannia',           sec:'FMCG',         p:5400, v:0.18, d:0.10, seed:30},
+  {s:'TATACONSUM',n:'Tata Consumer',       sec:'FMCG',         p:1100, v:0.26, d:0.11, seed:31},
+  {s:'SUNPHARMA', n:'Sun Pharma',          sec:'Pharma',       p:1750, v:0.24, d:0.13, seed:32},
+  {s:'DRREDDY',   n:'Dr Reddys Labs',      sec:'Pharma',       p:6800, v:0.22, d:0.12, seed:33},
+  {s:'CIPLA',     n:'Cipla',               sec:'Pharma',       p:1600, v:0.23, d:0.12, seed:34},
+  {s:'DIVISLAB',  n:'Divis Labs',          sec:'Pharma',       p:4800, v:0.26, d:0.11, seed:35},
+  {s:'APOLLOHOSP',n:'Apollo Hospitals',    sec:'Healthcare',   p:7200, v:0.28, d:0.16, seed:36},
+  {s:'TATASTEEL', n:'Tata Steel',          sec:'Metals',       p:165,  v:0.44, d:0.13, seed:37},
+  {s:'JSWSTEEL',  n:'JSW Steel',           sec:'Metals',       p:960,  v:0.40, d:0.12, seed:38},
+  {s:'HINDALCO',  n:'Hindalco',            sec:'Metals',       p:690,  v:0.38, d:0.13, seed:39},
+  {s:'COALINDIA', n:'Coal India',          sec:'Metals',       p:470,  v:0.30, d:0.11, seed:40},
+  {s:'LT',        n:'Larsen & Toubro',     sec:'Infra',        p:3700, v:0.26, d:0.14, seed:41},
+  {s:'NTPC',      n:'NTPC',                sec:'Power',        p:380,  v:0.28, d:0.12, seed:42},
+  {s:'POWERGRID', n:'Power Grid Corp',     sec:'Power',        p:330,  v:0.25, d:0.11, seed:43},
+  {s:'ASIANPAINT',n:'Asian Paints',        sec:'Consumer',     p:2700, v:0.20, d:0.10, seed:44},
+  {s:'TITAN',     n:'Titan Company',       sec:'Consumer',     p:3600, v:0.29, d:0.15, seed:45},
+  {s:'TRENT',     n:'Trent',               sec:'Consumer',     p:5800, v:0.38, d:0.20, seed:46},
+  {s:'ULTRACEMCO',n:'UltraTech Cement',    sec:'Cement',       p:11500,v:0.24, d:0.12, seed:47},
+  {s:'GRASIM',    n:'Grasim Industries',   sec:'Cement',       p:2800, v:0.28, d:0.12, seed:48},
+  {s:'BHARTIARTL',n:'Bharti Airtel',       sec:'Telecom',      p:1700, v:0.25, d:0.16, seed:49},
+  {s:'HDFCLIFE',  n:'HDFC Life Insurance', sec:'Insurance',    p:700,  v:0.25, d:0.11, seed:50},
+];
+
+const P = {emaF:9, emaS:21, atrM:2.0, rrR:2.0, minS:2};
+let results = [], sortKey = 'pf', sortAsc = false, activeSec = 'All';
+let pfChart = null;
+let schedTimer = null;
+
+function mkRng(seed) {
+  let s = (seed * 999 + 3) | 0;
+  return () => {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function randn(rng) {
+  let u, v;
+  do { u = rng(); } while (!u);
+  do { v = rng(); } while (!v);
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function genPrices(base, vol, drift, n, seed) {
+  const rng = mkRng(seed);
+  const dt = 1/252;
+  const px = [base];
+  for (let i = 1; i < n; i++) {
+    const r = (drift - 0.5*vol*vol)*dt + vol*Math.sqrt(dt)*randn(rng);
+    px.push(Math.max(px[i-1]*Math.exp(r), 1));
+  }
+  return px;
+}
+function ema(px, p) {
+  const r = new Array(px.length).fill(null);
+  if (px.length < p) return r;
+  const k = 2/(p+1);
+  let s = 0; for (let i=0;i<p;i++) s+=px[i];
+  r[p-1] = s/p;
+  for (let i=p;i<px.length;i++) r[i]=px[i]*k+r[i-1]*(1-k);
+  return r;
+}
+function calcRSI(px, p) {
+  const r = new Array(px.length).fill(null);
+  if (px.length<=p) return r;
+  let ag=0, al=0;
+  for (let i=1;i<=p;i++) { const d=px[i]-px[i-1]; d>0?ag+=d:al-=d; }
+  ag/=p; al/=p;
+  r[p] = 100-100/(1+ag/(al||1e-9));
+  for (let i=p+1;i<px.length;i++) {
+    const d=px[i]-px[i-1];
+    ag=(ag*(p-1)+Math.max(d,0))/p;
+    al=(al*(p-1)+Math.max(-d,0))/p;
+    r[i]=100-100/(1+ag/(al||1e-9));
+  }
+  return r;
+}
+function calcMACD(px, f, s, sig) {
+  const ef=ema(px,f), es=ema(px,s);
+  const ml=px.map((_,i)=>ef[i]!=null&&es[i]!=null?ef[i]-es[i]:null);
+  const si=ml.findIndex(v=>v!=null);
+  const vm=ml.slice(si).map(v=>v??0);
+  const se=ema(vm, sig);
+  const sl=new Array(px.length).fill(null);
+  se.forEach((v,i)=>{if(v!=null)sl[i+si]=v;});
+  return {ml, sl};
+}
+function calcATR(px, p) {
+  const r=new Array(px.length).fill(null);
+  const tr=px.map((v,i)=>i===0?0:Math.abs(v-px[i-1]));
+  let s=0; for(let i=1;i<=p;i++) s+=tr[i];
+  r[p]=s/p;
+  for(let i=p+1;i<px.length;i++) r[i]=(r[i-1]*(p-1)+tr[i])/p;
+  return r;
+}
+function backtest(px, params) {
+  const {emaF,emaS,atrM,rrR,minS}=params;
+  const N=px.length;
+  const e9=ema(px,emaF), e21=ema(px,emaS);
+  const rsi=calcRSI(px,14);
+  const {ml,sl}=calcMACD(px,12,26,9);
+  const atr=calcATR(px,14);
+  const trades=[];
+  let inT=false, entry=0, stpl=0, tp=0, eb=0;
+  const start=Math.max(emaS+5,35);
+  for(let i=start;i<N;i++){
+    if(inT){
+      if(px[i]<=stpl){trades.push({win:false,pnl:-(entry-stpl),bars:i-eb});inT=false;}
+      else if(px[i]>=tp){trades.push({win:true,pnl:tp-entry,bars:i-eb});inT=false;}
+      else if(i-eb>=25){const pnl=px[i]-entry;trades.push({win:pnl>0,pnl,bars:25});inT=false;}
+      continue;
+    }
+    if(!e9[i]||!e21[i]||!rsi[i]||!ml[i]||!sl[i]) continue;
+    const ec=e9[i]>e21[i]&&(e9[i-1]||0)<=(e21[i-1]||0);
+    const mc=ml[i]>sl[i]&&(ml[i-1]||0)<=(sl[i-1]||0);
+    if(!(ec||mc)) continue;
+    const score=(e9[i]>e21[i]?1:0)+(rsi[i]>35&&rsi[i]<65?1:0)+(ml[i]>sl[i]?1:0);
+    if(score>=minS&&e9[i]>e21[i]){
+      inT=true; entry=px[i];
+      const a=atr[i]||px[i]*0.015;
+      stpl=entry-a*atrM; tp=entry+a*atrM*rrR; eb=i;
+    }
+  }
+  if(!trades.length) return {trades:0,wins:0,winRate:0,pf:0,netPct:0,maxDD:0};
+  const wins=trades.filter(t=>t.win).length;
+  const gp=trades.filter(t=>t.win).reduce((a,t)=>a+t.pnl,0);
+  const gl=Math.abs(trades.filter(t=>!t.win).reduce((a,t)=>a+t.pnl,0));
+  const net=trades.reduce((a,t)=>a+t.pnl,0);
+  let eq=0,peak=0,mdd=0;
+  for(const t of trades){eq+=t.pnl;if(eq>peak)peak=eq;mdd=Math.max(mdd,peak-eq);}
+  return {
+    trades:trades.length, wins,
+    winRate:+(wins/trades.length*100).toFixed(1),
+    pf:+Math.min(gl>0?gp/gl:gp>0?9.99:0,9.99).toFixed(2),
+    netPct:+(net/px[0]*100).toFixed(1),
+    maxDD:+(mdd/px[0]*100).toFixed(1),
+    activeSignal: inT ? { type: 'BUY', barsAgo: N - 1 - eb } : null
+  };
+}
+function getGrade(r){
+  if(r.trades<3) return {g:'D',n:3};
+  if(r.winRate>=55&&r.pf>=1.5&&r.trades>=8) return {g:'A',n:0};
+  if(r.winRate>=47&&r.pf>=1.2&&r.trades>=5) return {g:'B',n:1};
+  if(r.winRate>=40&&r.pf>=1.0&&r.trades>=3) return {g:'C',n:2};
+  return {g:'D',n:3};
+}
+function runAll(){
+  results=STOCKS.map(st=>{
+    const px=genPrices(st.p,st.v,st.d,600,st.seed);
+    const r=backtest(px,P);
+    const {g,n}=getGrade(r);
+    return{...st,...r,grade:g,gradeN:n};
+  });
+  sortAndRender();
+}
+function sortAndRender(){
+  let data=[...results];
+  if(activeSec!=='All') data=data.filter(r=>r.sec===activeSec);
+  data.sort((a,b)=>sortAsc?(a[sortKey]||0)-(b[sortKey]||0):(b[sortKey]||0)-(a[sortKey]||0));
+  data.forEach((r,i)=>r.rank=i+1);
+  updateCards(results);
+  renderChart(results);
+  renderTable(data);
+  document.querySelectorAll('th[data-k]').forEach(th=>{
+    th.classList.toggle('sorted',th.dataset.k===sortKey);
+    const sa=th.querySelector('.sa');
+    if(sa) sa.textContent=th.dataset.k===sortKey?(sortAsc?'↑':'↓'):'↕';
+  });
+}
+function updateCards(data){
+  const valid=data.filter(r=>r.trades>0);
+  const best=valid.reduce((a,b)=>b.pf>a.pf?b:a,valid[0]||{s:'—',pf:0});
+  const avgWR=valid.length?+(valid.reduce((a,r)=>a+r.winRate,0)/valid.length).toFixed(1):0;
+  const gradeA=data.filter(r=>r.grade==='A').length;
+  const avgPF=valid.length?+(valid.reduce((a,r)=>a+r.pf,0)/valid.length).toFixed(2):0;
+  document.getElementById('c-best').textContent=best.s||'—';
+  document.getElementById('c-bpf').textContent='PF '+best.pf;
+  document.getElementById('c-wr').textContent=avgWR+'%';
+  document.getElementById('c-ga').textContent=gradeA+' stocks';
+  document.getElementById('c-gasub').textContent='out of '+data.length;
+  document.getElementById('c-pf').textContent=avgPF;
+}
+function renderChart(data){
+  const top=data.filter(r=>r.trades>0).sort((a,b)=>b.pf-a.pf).slice(0,10);
+  const labels=top.map(r=>r.s);
+  const vals=top.map(r=>r.pf);
+  const colors=top.map(r=>r.grade==='A'?'#3B6D11':r.grade==='B'?'#0F6E56':r.grade==='C'?'#854F0B':'#A32D2D');
+  const isDark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const tc=isDark?'rgba(255,255,255,0.45)':'rgba(0,0,0,0.4)';
+  const gc=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  if(pfChart) pfChart.destroy();
+  pfChart=new Chart(document.getElementById('pfChart'),{
+    type:'bar',
+    data:{labels,datasets:[{
+      label:'Profit Factor',
+      data:vals,
+      backgroundColor:colors,
+      borderWidth:0,
+      borderRadius:4,
+    }]},
+    options:{
+      indexAxis:'y',
+      responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` PF ${ctx.parsed.x.toFixed(2)}`}}},
+      scales:{
+        x:{min:0,grid:{color:gc},ticks:{color:tc,font:{size:11}},title:{display:true,text:'Profit Factor',color:tc,font:{size:11}}},
+        y:{grid:{display:false},ticks:{color:tc,font:{size:11,weight:'500'}}}
+      }
+    }
+  });
+}
+function renderTable(data){
+  const tbody=document.getElementById('tbl-body');
+  tbody.innerHTML=data.map(r=>{
+    const wrCls=r.winRate>=50?'win':'loss';
+    const netCls=r.netPct>=0?'win':'loss';
+    const pfCls=r.pf>=1.2?'win':r.pf<1?'loss':'';
+    return `<tr>
+      <td style="color:var(--color-text-tertiary)">${r.rank}</td>
+      <td style="font-weight:500">${r.s}</td>
+      <td><span class="sbadge">${r.sec}</span></td>
+      <td style="color:var(--color-text-secondary)">${r.trades}</td>
+      <td class="${wrCls}">${r.winRate}%</td>
+      <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
+      <td class="${netCls}">${r.netPct>=0?'+':''}${r.netPct}%</td>
+      <td style="color:${r.maxDD>20?'#E24B4A':r.maxDD>10?'#BA7517':'var(--color-text-secondary)'}">${r.maxDD}%</td>
+      <td><span class="badge b${r.grade}">${r.grade}</span></td>
+      <td>${r.activeSignal ? `<span class="win">BUY</span> <span style="color:var(--color-text-tertiary);font-size:10px">(${r.activeSignal.barsAgo}b ago)</span>` : '<span style="color:var(--color-text-tertiary)">—</span>'}</td>
+      <td><button class="ask-btn" onclick="sendPrompt('Tell me more about ${r.s} (${r.n}) — why it might work well or poorly with the TriSignal strategy, and what chart patterns to look for')">Deep dive ↗</button></td>
+    </tr>`;
+  }).join('');
+}
+function buildSectorFilters(){
+  const secs=['All',...new Set(STOCKS.map(s=>s.sec))].sort();
+  const fr=document.getElementById('sect-filters');
+  fr.innerHTML=secs.map(s=>`<button class="fpill${s===activeSec?' on':''}" onclick="setSec('${s}')">${s}</button>`).join('');
+}
+function setSec(s){
+  activeSec=s;
+  document.querySelectorAll('.fpill').forEach(b=>b.classList.toggle('on',b.textContent===s));
+  sortAndRender();
+}
+document.querySelectorAll('th[data-k]').forEach(th=>{
+  th.onclick=()=>{
+    if(sortKey===th.dataset.k) sortAsc=!sortAsc;
+    else{sortKey=th.dataset.k;sortAsc=false;}
+    sortAndRender();
+  };
+});
+function schedule(){clearTimeout(schedTimer);schedTimer=setTimeout(runAll,400);}
+buildSectorFilters();
+runAll();
+</script>
