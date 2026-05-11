@@ -667,7 +667,10 @@ function openTradesModal(symbol) {
       // Calculator Logic
       const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
       const isCrypto = st.sec === 'Crypto';
-      const grossProfit = startAmount * (t.pnlPct / 100);
+      const isIntraday = resultsIntraday.some(r => r.s === symbol);
+      const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
+      
+      const grossProfit = effectiveCapital * (t.pnlPct / 100);
       let tax = 0;
       let charges = 0;
       
@@ -703,7 +706,7 @@ function openTradesModal(symbol) {
           <div style="${pnlStyle}">${t.pnl > 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</div>
         </td>
         <td>
-          <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)}</div>
+          <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)} ${isIntraday && !isCrypto ? '<span style="font-size:10px;color:#D29922;">(5x Margin)</span>' : ''}</div>
           <div style="font-size:9px; color:var(--color-text-tertiary)">Tax: ${formatCurrency(tax)} | Fee: ${formatCurrency(charges)}</div>
         </td>
         <td style="color:var(--color-text-secondary)">${holdingTime}</td>
