@@ -596,22 +596,31 @@ function sortAndRender(){
   // Update Global Cards using an aggregate or just ShortTerm for stability
   updateCards(resultsShortTerm);
   
-  renderTable(dataIntraday, 'tbl-body-intraday');
-  renderTable(dataShortTerm, 'tbl-body-shortterm');
-  
   // Portfolio Recommendation for Double Capital
   const goal = document.getElementById('opt-goal')?.value;
   const portfolioEl = document.getElementById('portfolio-recommendation');
-  if (goal === 'double_capital' && dataIntraday.length > 0 && portfolioEl) {
+  
+  if (goal === 'double_capital' && dataIntraday.length > 0) {
     // Sort by netPct descending to find top contributors
     const sortedByProfit = [...dataIntraday].sort((a, b) => b.netPct - a.netPct);
     const top3 = sortedByProfit.slice(0, 3);
-    const symbols = top3.map(r => `<span style="color:#FFD700;font-weight:bold;">${r.s}</span>`).join(', ');
-    const totalProfit = top3.reduce((sum, r) => sum + r.netPct, 0).toFixed(1);
-    portfolioEl.innerHTML = `💡 <strong>Recommended Combo:</strong> Trade ${symbols} together! Combined return: <strong>${totalProfit}%</strong> in this period.`;
+    const top3Symbols = top3.map(r => r.s);
+    
+    if (portfolioEl) {
+      const symbols = top3.map(r => `<span style="color:#FFD700;font-weight:bold;">${r.s}</span>`).join(', ');
+      const totalProfit = top3.reduce((sum, r) => sum + r.netPct, 0).toFixed(1);
+      portfolioEl.innerHTML = `💡 <strong>Recommended Combo:</strong> Trade ${symbols} together! Combined return: <strong>${totalProfit}%</strong> in this period.`;
+    }
+    
+    // Filter tables to show ONLY the top 3 stocks!
+    dataIntraday = dataIntraday.filter(r => top3Symbols.includes(r.s));
+    dataShortTerm = dataShortTerm.filter(r => top3Symbols.includes(r.s));
   } else if (portfolioEl) {
     portfolioEl.innerHTML = '';
   }
+  
+  renderTable(dataIntraday, 'tbl-body-intraday');
+  renderTable(dataShortTerm, 'tbl-body-shortterm');
   
   document.querySelectorAll('th[data-k]').forEach(th=>{
     th.classList.toggle('sorted',th.dataset.k===sortKey);
