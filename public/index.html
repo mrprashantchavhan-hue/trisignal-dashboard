@@ -393,13 +393,13 @@ async function fetchData() {
   }
   
   try {
-    const p1 = fetch('http://localhost:3000/api/screener', {
+    const p1 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: '15m', range: '20d', period1, period2 })
     }).then(r => r.json());
     
-    const p2 = fetch('http://localhost:3000/api/screener', {
+    const p2 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: '1d', range: '5y', period1, period2 })
@@ -440,7 +440,7 @@ async function autoOptimize() {
   const goal = document.getElementById('opt-goal').value;
   
   try {
-    const res = await fetch('http://localhost:3000/api/optimize', {
+    const res = await fetch('/api/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ market: currentMarket, interval: '15m', range: '20d', period1, period2, goal })
@@ -739,7 +739,7 @@ async function fetchNews() {
   }
   
   try {
-    const res = await fetch('http://localhost:3000/api/news', {
+    const res = await fetch('/api/news', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tickers: top })
