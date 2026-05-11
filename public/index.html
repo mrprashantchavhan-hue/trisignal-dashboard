@@ -519,7 +519,7 @@ async function autoOptimize() {
     const res = await fetch('/api/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ market: currentMarket, interval: '15m', range: '20d', period1, period2, goal })
+      body: JSON.stringify({ market: currentMarket, interval: '15m', range: '60d', period1, period2, goal })
     });
     const data = await res.json();
     const optimalP = data.params;
