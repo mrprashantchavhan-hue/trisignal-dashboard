@@ -284,7 +284,7 @@ function calcBB(px, p, std) {
 }
 
 function backtest(px, ts, vl, params) {
-  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, volM=0 } = params;
+  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, volM=0, direction='BOTH' } = params;
   if (!px || px.length < Math.max(emaS + 5, 35)) {
     return { trades: 0, wins: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0, signal: 'FLAT', signalDetails: '', tradeDetails: [] };
   }
@@ -337,7 +337,7 @@ function backtest(px, ts, vl, params) {
     
     let newEntryOnThisBar = 0;
     
-    if (tradeDir === 0 && (ecLong || mcLong)) {
+    if (tradeDir === 0 && (ecLong || mcLong) && (direction === 'BOTH' || direction === 'LONG_ONLY')) {
       let score = (e9[i] > e21[i] ? 1 : 0) + (rsi[i] > rsiLow && rsi[i] < rsiHigh ? 1 : 0) + (ml[i] > sl[i] ? 1 : 0);
       if (bbMode === 1 && bbUp[i] !== null && px[i] > bbUp[i]) score++;
       if (bbMode === 2 && bbLow[i] !== null && px[i] > bbLow[i] && px[i-1] <= bbLow[i-1]) score++;
@@ -351,7 +351,7 @@ function backtest(px, ts, vl, params) {
       }
     }
     
-    if (tradeDir === 0 && (ecShort || mcShort)) {
+    if (tradeDir === 0 && (ecShort || mcShort) && (direction === 'BOTH' || direction === 'SHORT_ONLY')) {
       let score = (e9[i] < e21[i] ? 1 : 0) + (rsi[i] < rsiHigh ? 1 : 0) + (ml[i] < sl[i] ? 1 : 0);
       if (bbMode === 1 && bbLow[i] !== null && px[i] < bbLow[i]) score++;
       if (bbMode === 2 && bbUp[i] !== null && px[i] < bbUp[i] && px[i-1] >= bbUp[i-1]) score++;

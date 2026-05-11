@@ -338,6 +338,13 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
       
       <div style="background:var(--color-background-secondary); padding:12px; border-radius:8px; grid-column: 1 / -1;">
         <h3 style="font-size:12px; margin-top:0; color:var(--color-text-secondary); text-transform:uppercase;">Advanced Filters</h3>
+        <div class="cg" style="margin-bottom:8px;"><label style="width:100px;">Trade Direction</label>
+          <select style="background:#0d1117; color:#c9d1d9; border:1px solid #30363d; padding:4px; border-radius:4px;" onchange="P.direction=this.value;schedule()">
+            <option value="BOTH">Both (Long & Short)</option>
+            <option value="LONG_ONLY">Long Only</option>
+            <option value="SHORT_ONLY">Short Only</option>
+          </select>
+        </div>
         <div class="cg" style="margin-bottom:8px;"><label style="width:100px;">BB Mode</label>
           <select style="background:#0d1117; color:#c9d1d9; border:1px solid #30363d; padding:4px; border-radius:4px;" onchange="P.bbMode=+this.value;schedule()">
             <option value="0">Disabled</option>
@@ -420,7 +427,7 @@ function formatSignal(raw, isShort) {
 }
 
 // --- SCREENER DATA ---
-const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0};
+const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH'};
 let resultsIntraday = [], resultsShortTerm = [];
 let previousResults = {}; // Map of symbol -> price for highlighting
 let sortKey = 'pf', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
