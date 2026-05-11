@@ -566,6 +566,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
               const params = { emaF, emaS, atrM, rrR, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode, volM };
               
               let totalPF = 0, totalWR = 0, validAssets = 0, sumTrades = 0, totalNetPct = 0;
+              const assetNetPcts = [];
               for (const item of rawData) {
                 const r = backtest(item.px, item.ts, item.vl, params);
                 if (r.trades > 0) {
@@ -573,6 +574,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
                   totalWR += r.winRate;
                   sumTrades += r.trades;
                   totalNetPct += r.netPct;
+                  assetNetPcts.push(r.netPct);
                   validAssets++;
                 }
               }
@@ -588,7 +590,11 @@ app.post('/api/optimize', express.json(), async (req, res) => {
               else if (goal === 'max_wr') score = avgWR;
               else if (goal === 'balanced') score = avgPF * (avgWR / 100);
               else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
-              else if (goal === 'double_capital') score = avgNetPct; // Maximize average net profit %
+              else if (goal === 'double_capital') {
+                assetNetPcts.sort((a, b) => b - a);
+                // Score based on the sum of top 3 assets (portfolio combination)
+                score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val, 0);
+              }
               
               if (score > bestScore) {
                 bestScore = score;
