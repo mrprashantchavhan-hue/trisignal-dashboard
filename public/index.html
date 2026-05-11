@@ -841,6 +841,10 @@ function openTradesModal(symbol) {
       const effectiveCapital = startAmount * stockMargin;
       
       const grossProfit = effectiveCapital * (t.pnlPct / 100);
+      const buyValue = effectiveCapital;
+      const sellValue = effectiveCapital * (1 + t.pnlPct / 100);
+      const turnover = buyValue + sellValue;
+      
       let tax = 0;
       let charges = 0;
       
@@ -855,10 +859,30 @@ function openTradesModal(symbol) {
       if (isCrypto) {
         charges = startAmount * 0.002; // 0.2% fee estimate
       } else {
-        charges = 40; // Flat fee estimate
+        // Groww Equity Charges
+        const maxBrokerage = 20;
+        const brokerageRate = 0.0005; // 0.05%
+        
+        const buyBrokerage = Math.min(maxBrokerage, buyValue * brokerageRate);
+        const sellBrokerage = Math.min(maxBrokerage, sellValue * brokerageRate);
+        const brokerage = buyBrokerage + sellBrokerage;
+        
+        let stt = 0;
+        let transCharges = turnover * 0.0000325; // 0.00325% NSE
+        let sebi = turnover * 0.000001; // 0.0001%
+        let stampDuty = 0;
+        
         if (isIntraday) {
-          charges += effectiveCapital * 0.00025; // Add 0.025% for STT/volume charges
+          stt = sellValue * 0.00025; // 0.025% on Sell
+          stampDuty = buyValue * 0.00003; // 0.003% on Buy
+        } else {
+          stt = turnover * 0.001; // 0.1% on Both
+          stampDuty = buyValue * 0.00015; // 0.015% on Buy
         }
+        
+        const gst = (brokerage + transCharges) * 0.18; // 18% GST
+        
+        charges = brokerage + stt + transCharges + gst + sebi + stampDuty;
       }
       
       const netProfit = grossProfit - tax - charges;
