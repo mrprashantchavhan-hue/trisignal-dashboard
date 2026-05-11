@@ -787,7 +787,20 @@ function openTradesModal(symbol) {
     }
   }
 
-  document.getElementById('modalTitle').textContent = `Trade Details for ${st.n} (${symbol})`;
+  // Dynamic margin per stock to simulate Groww's variable margin (3x to 5x)
+  function getStockMargin(sym) {
+    let hash = 0;
+    for (let i = 0; i < sym.length; i++) {
+      hash = sym.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return 3 + (Math.abs(hash) % 3); // Returns 3, 4, or 5
+  }
+  
+  const isCrypto = st.sec === 'Crypto';
+  const isIntraday = resultsIntraday.some(r => r.s === symbol);
+  const stockMargin = isCrypto ? 1 : (isIntraday ? getStockMargin(symbol) : 1);
+
+  document.getElementById('modalTitle').textContent = `Trade Details for ${st.n} (${symbol}) | Groww Margin: ${stockMargin}x`;
   
   const tbody = document.getElementById('modal-tbody');
   
@@ -825,9 +838,7 @@ function openTradesModal(symbol) {
 
       // Calculator Logic
       const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-      const isCrypto = st.sec === 'Crypto';
-      const isIntraday = resultsIntraday.some(r => r.s === symbol);
-      const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
+      const effectiveCapital = startAmount * stockMargin;
       
       const grossProfit = effectiveCapital * (t.pnlPct / 100);
       let tax = 0;
