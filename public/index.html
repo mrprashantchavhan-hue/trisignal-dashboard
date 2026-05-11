@@ -144,6 +144,10 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     </select>
   </div>
   <div class="filter-group">
+    <label>Start Amount (₹)</label>
+    <input type="number" id="start-amount" value="10000" step="1000" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:100px;">
+  </div>
+  <div class="filter-group">
     <label>Custom Date Range</label>
     <div style="display:flex; gap:8px;">
       <input type="text" id="date-range" placeholder="Select Dates..." style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:200px; text-align:center; cursor:pointer;">
@@ -252,6 +256,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
           <th>Entry</th>
           <th>Exit</th>
           <th>P&L</th>
+          <th>Net Profit</th>
           <th>Bars Held</th>
         </tr>
       </thead>
@@ -659,6 +664,30 @@ function openTradesModal(symbol) {
 
       const tradeTypeLabel = t.type === 'SHORT' ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>' : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
 
+      // Calculator Logic
+      const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+      const isCrypto = st.sec === 'Crypto';
+      const grossProfit = startAmount * (t.pnlPct / 100);
+      let tax = 0;
+      let charges = 0;
+      
+      if (grossProfit > 0) {
+        if (isCrypto) {
+          tax = grossProfit * 0.30; // 30% tax
+        } else {
+          tax = grossProfit * 0.15; // 15% STCG
+        }
+      }
+      
+      if (isCrypto) {
+        charges = startAmount * 0.002; // 0.2% fee estimate
+      } else {
+        charges = 40; // Flat fee estimate
+      }
+      
+      const netProfit = grossProfit - tax - charges;
+      const netPnlStyle = netProfit > 0 ? 'color:#3FB950; font-weight:500;' : 'color:#F85149; font-weight:500;';
+
       return `<tr>
         <td style="color:var(--color-text-tertiary)">${st.tradeDetails.length - i}</td>
         <td class="${cls}">${t.win ? 'WIN' : 'LOSS'}${tradeTypeLabel}</td>
@@ -672,6 +701,10 @@ function openTradesModal(symbol) {
         </td>
         <td>
           <div style="${pnlStyle}">${t.pnl > 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</div>
+        </td>
+        <td>
+          <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)}</div>
+          <div style="font-size:9px; color:var(--color-text-tertiary)">Tax: ${formatCurrency(tax)} | Fee: ${formatCurrency(charges)}</div>
         </td>
         <td style="color:var(--color-text-secondary)">${holdingTime}</td>
       </tr>`;
