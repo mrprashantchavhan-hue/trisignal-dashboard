@@ -430,7 +430,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
   const list = market === 'crypto' ? CRYPTO : STOCKS;
 
-  const chunkSize = 25; // Fetch up to 25 stocks simultaneously
+  const chunkSize = 50; // Fetch up to 50 stocks simultaneously
   for (let i = 0; i < list.length; i += chunkSize) {
     const chunk = list.slice(i, i + chunkSize);
     const promises = chunk.map(async (st) => {
@@ -473,7 +473,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
     const results = await Promise.all(promises);
     newRawData.push(...results);
-    await new Promise(r => setTimeout(r, 200)); // Small 200ms breather between chunks
+    await new Promise(r => setTimeout(r, 50)); // Small 50ms breather between chunks
   }
   
   rawCache[cacheKey] = newRawData;
