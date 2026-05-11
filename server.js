@@ -617,6 +617,8 @@ app.post('/api/optimize', express.json(), async (req, res) => {
     name = 'The Golden Mean'; desc = 'Perfect mathematical balance between steady wins and outsized returns.';
   } else if (goal === 'max_trades') {
     name = 'The Hyper-Scalper'; desc = 'Fires rapidly on every momentum shift while keeping a baseline profit factor.';
+  } else if (goal === 'double_capital') {
+    name = 'The Wealth Multiplier'; desc = 'Aggressively searches for parameters that maximize total percentage growth to double your capital!';
   }
 
   res.json({
