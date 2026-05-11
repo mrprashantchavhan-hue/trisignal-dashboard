@@ -207,6 +207,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
         <th style="width:68px" data-k="netPct">Return % <span class="sa">↕</span></th>
+        <th style="width:80px" data-k="estMoProfit">Mo. Profit <span class="sa">↕</span></th>
         <th style="width:58px" data-k="maxDD">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
@@ -232,6 +233,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
         <th style="width:68px" data-k="netPct">Return % <span class="sa">↕</span></th>
+        <th style="width:80px" data-k="estMoProfit">Mo. Profit <span class="sa">↕</span></th>
         <th style="width:58px" data-k="maxDD">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
@@ -506,6 +508,14 @@ function sortAndRender(){
     dataShortTerm = dataShortTerm.filter(r=>r.signal==='BUY_NEW' || r.signal==='HOLD_LONG' || r.signal==='SELL_NEW' || r.signal==='HOLD_SHORT');
   }
   
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  dataIntraday.forEach(r => {
+    r.estMoProfit = startAmount * ((r.netPct * 1.5) / 100);
+  });
+  dataShortTerm.forEach(r => {
+    r.estMoProfit = startAmount * ((r.netPct / 60) / 100);
+  });
+  
   const sortFn = (a,b)=>sortAsc?(a[sortKey]||0)-(b[sortKey]||0):(b[sortKey]||0)-(a[sortKey]||0);
   dataIntraday.sort(sortFn);
   dataShortTerm.sort(sortFn);
@@ -598,6 +608,7 @@ function renderTable(data, targetId){
       <td class="${wrCls}">${r.winRate}%</td>
       <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
       <td class="${netCls}">${r.netPct>=0?'+':''}${r.netPct}%</td>
+      <td class="${netCls}">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
       <td style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
       <td><span class="badge b${r.grade}">${r.grade}</span></td>
     </tr>`;
