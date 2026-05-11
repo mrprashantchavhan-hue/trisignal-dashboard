@@ -250,21 +250,44 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <button class="close-btn" onclick="document.getElementById('tradeModal').close()">&times;</button>
   </div>
   <div class="modal-body">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Outcome</th>
-          <th>Entry</th>
-          <th>Exit</th>
-          <th>P&L</th>
-          <th>Net Profit</th>
-          <th>Bars Held</th>
-        </tr>
-      </thead>
-      <tbody id="modal-tbody">
-      </tbody>
-    </table>
+    <div style="display:flex; gap:10px; padding:10px 20px; border-bottom:1px solid var(--color-border-tertiary);">
+      <button id="tab-list" class="run-btn" style="background:#21262d; color:#c9d1d9; border:1px solid #30363d; font-size:12px; padding:4px 10px;" onclick="switchModalTab('list')">Trade List</button>
+      <button id="tab-monthly" class="run-btn" style="background:transparent; color:#8B949E; border:1px solid transparent; font-size:12px; padding:4px 10px;" onclick="switchModalTab('monthly')">Monthly Breakdown</button>
+    </div>
+    
+    <div id="modal-content-list">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Outcome</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>P&L</th>
+            <th>Net Profit</th>
+            <th>Bars Held</th>
+          </tr>
+        </thead>
+        <tbody id="modal-tbody">
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="modal-content-monthly" style="display:none; padding:16px;">
+      <table style="width:100%">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Trades</th>
+            <th>Win Rate</th>
+            <th>Gross Profit</th>
+            <th>Net Profit</th>
+          </tr>
+        </thead>
+        <tbody id="modal-monthly-tbody">
+        </tbody>
+      </table>
+    </div>
   </div>
 </dialog>
 
@@ -615,9 +638,38 @@ function renderTable(data, targetId){
   }).join('');
 }
 
+function switchModalTab(tab) {
+  const isList = tab === 'list';
+  document.getElementById('modal-content-list').style.display = isList ? 'block' : 'none';
+  document.getElementById('modal-content-monthly').style.display = isList ? 'none' : 'block';
+  
+  const btnList = document.getElementById('tab-list');
+  const btnMonthly = document.getElementById('tab-monthly');
+  
+  if (isList) {
+    btnList.style.background = '#21262d';
+    btnList.style.color = '#c9d1d9';
+    btnList.style.borderColor = '#30363d';
+    
+    btnMonthly.style.background = 'transparent';
+    btnMonthly.style.color = '#8B949E';
+    btnMonthly.style.borderColor = 'transparent';
+  } else {
+    btnMonthly.style.background = '#21262d';
+    btnMonthly.style.color = '#c9d1d9';
+    btnMonthly.style.borderColor = '#30363d';
+    
+    btnList.style.background = 'transparent';
+    btnList.style.color = '#8B949E';
+    btnList.style.borderColor = 'transparent';
+  }
+}
+
 function openTradesModal(symbol) {
   let st = resultsIntraday.find(r => r.s === symbol) || resultsShortTerm.find(r => r.s === symbol);
   if (!st) return;
+  
+  switchModalTab('list'); // Reset to list view
   
   let sizeHTML = '';
   const isActiveLong = st.signal === 'BUY_NEW' || st.signal === 'HOLD_LONG';
@@ -727,6 +779,63 @@ function openTradesModal(symbol) {
       </tr>`;
     }).join('');
   }
+  
+  // Populate Monthly Table
+  const monthlyData = {};
+  const isCrypto = st.sec === 'Crypto';
+  const isIntraday = resultsIntraday.some(r => r.s === symbol);
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
+
+  if (st.tradeDetails && st.tradeDetails.length > 0) {
+    st.tradeDetails.forEach(t => {
+      if (!t.exitTime) return;
+      const d = new Date(t.exitTime);
+      const key = d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      
+      if (!monthlyData[key]) {
+        monthlyData[key] = { gross: 0, net: 0, trades: 0, wins: 0 };
+      }
+      
+      const grossProfit = effectiveCapital * (t.pnlPct / 100);
+      let tax = 0;
+      let charges = 0;
+      
+      if (grossProfit > 0) {
+        if (isCrypto) tax = grossProfit * 0.30;
+        else tax = grossProfit * 0.15;
+      }
+      if (isCrypto) charges = startAmount * 0.002;
+      else {
+        charges = 40;
+        if (isIntraday) charges += effectiveCapital * 0.00025;
+      }
+      
+      const netProfit = grossProfit - tax - charges;
+      
+      monthlyData[key].gross += grossProfit;
+      monthlyData[key].net += netProfit;
+      monthlyData[key].trades += 1;
+      if (t.win) monthlyData[key].wins += 1;
+    });
+  }
+
+  const monthlyTbody = document.getElementById('modal-monthly-tbody');
+  const sortedKeys = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
+  
+  monthlyTbody.innerHTML = sortedKeys.map(key => {
+    const m = monthlyData[key];
+    const wr = m.trades > 0 ? (m.wins / m.trades * 100).toFixed(1) : '0.0';
+    const netCls = m.net >= 0 ? 'color:#3FB950; font-weight:500;' : 'color:#F85149; font-weight:500;';
+    const grossCls = m.gross >= 0 ? 'color:#3FB950;' : 'color:#F85149;';
+    return `<tr>
+      <td style="font-weight:500">${key}</td>
+      <td>${m.trades}</td>
+      <td>${wr}%</td>
+      <td style="${grossCls}">${m.gross >= 0 ? '+' : ''}${formatCurrency(m.gross)}</td>
+      <td style="${netCls}">${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}</td>
+    </tr>`;
+  }).join('');
   
   document.getElementById('tradeModal').showModal();
 }
