@@ -766,13 +766,7 @@ function openTradesModal(symbol) {
   if (!st) return;
   
   switchModalTab('list'); // Reset to list view
-
-  // Declare all shared variables at top to avoid duplicate const errors
-  const isCrypto = st.sec === 'Crypto';
-  const isIntraday = resultsIntraday.some(r => r.s === symbol);
-  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-  const effectiveCapital = startAmount;
-
+  
   let sizeHTML = '';
   const isActiveLong = st.signal === 'BUY_NEW' || st.signal === 'HOLD_LONG';
   const isActiveShort = st.signal === 'SELL_NEW' || st.signal === 'HOLD_SHORT';
@@ -794,11 +788,11 @@ function openTradesModal(symbol) {
   }
 
   document.getElementById('modalTitle').textContent = `Trade Details for ${st.n} (${symbol})`;
-
+  
   const tbody = document.getElementById('modal-tbody');
   
   if (!st.tradeDetails || st.tradeDetails.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
   } else {
     const headerHTML = sizeHTML ? `<tr><td colspan="6" style="padding:0; border:none;">${sizeHTML}</td></tr>` : '';
     tbody.innerHTML = headerHTML + st.tradeDetails.map((t, i) => {
@@ -829,12 +823,13 @@ function openTradesModal(symbol) {
 
       const tradeTypeLabel = t.type === 'SHORT' ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>' : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
 
-      // Calculator Logic (using effectiveCapital defined at function top)
-      const grossProfit = effectiveCapital * (t.pnlPct / 100);
-      const buyValue = effectiveCapital;
-      const sellValue = effectiveCapital * (1 + t.pnlPct / 100);
-      const turnover = buyValue + sellValue;
+      // Calculator Logic
+      const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+      const isCrypto = st.sec === 'Crypto';
+      const isIntraday = resultsIntraday.some(r => r.s === symbol);
+      const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
       
+      const grossProfit = effectiveCapital * (t.pnlPct / 100);
       let tax = 0;
       let charges = 0;
       
@@ -849,30 +844,10 @@ function openTradesModal(symbol) {
       if (isCrypto) {
         charges = startAmount * 0.002; // 0.2% fee estimate
       } else {
-        // Groww Equity Charges
-        const maxBrokerage = 20;
-        const brokerageRate = 0.0005; // 0.05%
-        
-        const buyBrokerage = Math.min(maxBrokerage, buyValue * brokerageRate);
-        const sellBrokerage = Math.min(maxBrokerage, sellValue * brokerageRate);
-        const brokerage = buyBrokerage + sellBrokerage;
-        
-        let stt = 0;
-        let transCharges = turnover * 0.0000325; // 0.00325% NSE
-        let sebi = turnover * 0.000001; // 0.0001%
-        let stampDuty = 0;
-        
+        charges = 40; // Flat fee estimate
         if (isIntraday) {
-          stt = sellValue * 0.00025; // 0.025% on Sell
-          stampDuty = buyValue * 0.00003; // 0.003% on Buy
-        } else {
-          stt = turnover * 0.001; // 0.1% on Both
-          stampDuty = buyValue * 0.00015; // 0.015% on Buy
+          charges += effectiveCapital * 0.00025; // Add 0.025% for STT/volume charges
         }
-        
-        const gst = (brokerage + transCharges) * 0.18; // 18% GST
-        
-        charges = brokerage + stt + transCharges + gst + sebi + stampDuty;
       }
       
       const netProfit = grossProfit - tax - charges;
@@ -901,8 +876,12 @@ function openTradesModal(symbol) {
     }).join('');
   }
   
-  // Populate Monthly Table (isCrypto, isIntraday, effectiveCapital defined above)
+  // Populate Monthly Table
   const monthlyData = {};
+  const isCrypto = st.sec === 'Crypto';
+  const isIntraday = resultsIntraday.some(r => r.s === symbol);
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
 
   if (st.tradeDetails && st.tradeDetails.length > 0) {
     st.tradeDetails.forEach(t => {
