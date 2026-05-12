@@ -297,6 +297,7 @@ function backtest(px, ts, vl, params) {
   const volSma = calcSMA(vl, 20);
   let trades = [];
   let tradeDir = 0, entry = 0, stpl = 0, tp = 0, eb = 0;
+  let lastSignalScore = 0; // Track quality of latest signal
   const start = Math.max(emaS + 5, 35);
 
   let currentSignal = 'FLAT';
@@ -381,16 +382,19 @@ function backtest(px, ts, vl, params) {
     // ── LONG entry ──────────────────────────────────────────────────────────
     if (tradeDir === 0 && (ecLong || mcLong) && (direction === 'BOTH' || direction === 'LONG_ONLY')) {
       let score = 0;
-      if (e9[i] > e21[i]) score++;                                      // EMA trend up
-      if (rsi[i] > rsiLow && rsi[i] < 60) score++;                      // RSI in healthy long zone (not overbought)
-      if (ml[i] > sl[i]) score++;                                        // MACD bullish
-      if (momentumLong) score++;                                          // Price above 5-bar avg
-      if (bbMode === 1 && bbUp[i] !== null && px[i] > bbUp[i]) score++; // BB breakout
+      if (e9[i] > e21[i]) score++;                                       // EMA trend up
+      if (rsi[i] > rsiLow && rsi[i] < 60) score++;                       // RSI healthy long zone
+      if (ml[i] > sl[i]) score++;                                         // MACD bullish
+      if (momentumLong) score++;                                           // Price above 5-bar avg
+      if (bbMode === 1 && bbUp[i] !== null && px[i] > bbUp[i]) score++;  // BB breakout
       if (bbMode === 2 && bbLow[i] !== null && px[i] > bbLow[i] && px[i-1] <= bbLow[i-1]) score++;
       if (volM > 0 && volSma[i] !== null && vl[i] > volSma[i] * volM) score++; // Volume surge
 
-      if (score >= minS && e9[i] > e21[i]) {
-        tradeDir = 1; entry = px[i];
+      // QUALITY GATE: All 3 core conditions must agree (no conflicting signals)
+      const coreAligned = e9[i] > e21[i] && ml[i] > sl[i] && rsi[i] > rsiLow && rsi[i] < 65;
+
+      if (score >= minS && coreAligned) {
+        tradeDir = 1; entry = px[i]; lastSignalScore = score;
         const a = atr[i] || px[i] * 0.015;
         stpl = entry - a * atrM; tp = entry + a * atrM * rrR; eb = i;
         newEntryOnThisBar = 1;
@@ -400,16 +404,19 @@ function backtest(px, ts, vl, params) {
     // ── SHORT entry ─────────────────────────────────────────────────────────
     if (tradeDir === 0 && (ecShort || mcShort) && (direction === 'BOTH' || direction === 'SHORT_ONLY')) {
       let score = 0;
-      if (e9[i] < e21[i]) score++;                                        // EMA trend down
-      if (rsi[i] < rsiHigh && rsi[i] > 40) score++;                      // RSI in healthy short zone (not oversold)
-      if (ml[i] < sl[i]) score++;                                         // MACD bearish
-      if (momentumShort) score++;                                          // Price below 5-bar avg
+      if (e9[i] < e21[i]) score++;                                         // EMA trend down
+      if (rsi[i] < rsiHigh && rsi[i] > 40) score++;                       // RSI healthy short zone
+      if (ml[i] < sl[i]) score++;                                          // MACD bearish
+      if (momentumShort) score++;                                           // Price below 5-bar avg
       if (bbMode === 1 && bbLow[i] !== null && px[i] < bbLow[i]) score++;
       if (bbMode === 2 && bbUp[i] !== null && px[i] < bbUp[i] && px[i-1] >= bbUp[i-1]) score++;
       if (volM > 0 && volSma[i] !== null && vl[i] > volSma[i] * volM) score++;
 
-      if (score >= minS && e9[i] < e21[i]) {
-        tradeDir = -1; entry = px[i];
+      // QUALITY GATE: All 3 core conditions must agree
+      const coreAligned = e9[i] < e21[i] && ml[i] < sl[i] && rsi[i] < rsiHigh && rsi[i] > 35;
+
+      if (score >= minS && coreAligned) {
+        tradeDir = -1; entry = px[i]; lastSignalScore = score;
         const a = atr[i] || px[i] * 0.015;
         stpl = entry + a * atrM; tp = entry - a * atrM * rrR; eb = i;
         newEntryOnThisBar = -1;
@@ -455,6 +462,7 @@ function backtest(px, ts, vl, params) {
     maxDD: +(mdd / px[0] * 100).toFixed(1),
     signal: currentSignal,
     signalDetails,
+    signalScore: lastSignalScore,
     tradeDetails: tradeDetails.reverse(),
     sigE: entry, sigTP: tp, sigSL: stpl,
     sigTime: tradeDir !== 0 ? ts[eb] : null

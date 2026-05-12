@@ -99,6 +99,13 @@ th.sorted .sa { opacity: 1; color: var(--color-text-primary); }
 .filter-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .fpill { padding: 4px 10px; border-radius: 14px; border: 0.5px solid var(--color-border-secondary); font-size: 11px; cursor: pointer; color: var(--color-text-secondary); background: transparent; }
 .fpill.on { background: var(--color-background-info); color: var(--color-text-info); border-color: transparent; }
+.fpill.quality-on { background: rgba(255, 215, 0, 0.15); color: #FFD700; border-color: rgba(255, 215, 0, 0.4); }
+
+/* Quality dimming for low-grade rows */
+.row-dim { opacity: 0.38; filter: grayscale(0.6); }
+
+/* Signal quality stars */
+.sig-quality { display:inline-flex; gap:1px; margin-left:5px; font-size:9px; letter-spacing:1px; }
 
 /* Updates highlight */
 .price-up { color: #3FB950 !important; animation: flashGreen 1s ease-out; }
@@ -223,6 +230,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
   <div id="sig-filters" style="display:flex; gap:8px; border-right:1px solid var(--color-border-tertiary); padding-right:12px; margin-right:4px;">
     <button class="fpill on" id="btn-all-sig" onclick="setSignalFilter('ALL')">All Assets</button>
     <button class="fpill" id="btn-act-sig" onclick="setSignalFilter('ACTIVE')">Active Signals</button>
+    <button class="fpill" id="btn-qual-sig" onclick="setSignalFilter('QUALITY')" title="Show only Grade A &amp; B stocks with confirmed signals">⭐ Quality Only</button>
   </div>
   <div id="sect-filters" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
 </div>
@@ -726,10 +734,16 @@ function sortAndRender(){
     dataIntraday = dataIntraday.filter(r=>r.sec===activeSec);
     dataShortTerm = dataShortTerm.filter(r=>r.sec===activeSec);
   }
-  if(activeSig==='ACTIVE') {
-    dataIntraday = dataIntraday.filter(r=>r.signal==='BUY_NEW' || r.signal==='HOLD_LONG' || r.signal==='SELL_NEW' || r.signal==='HOLD_SHORT');
-    dataShortTerm = dataShortTerm.filter(r=>r.signal==='BUY_NEW' || r.signal==='HOLD_LONG' || r.signal==='SELL_NEW' || r.signal==='HOLD_SHORT');
+  const ACTIVE_SIGS = ['BUY_NEW','HOLD_LONG','SELL_NEW','HOLD_SHORT'];
+  if (activeSig === 'ACTIVE') {
+    dataIntraday  = dataIntraday.filter(r => ACTIVE_SIGS.includes(r.signal));
+    dataShortTerm = dataShortTerm.filter(r => ACTIVE_SIGS.includes(r.signal));
+  } else if (activeSig === 'QUALITY') {
+    // Quality Only: Grade A or B AND profitable AND active signal
+    dataIntraday  = dataIntraday.filter(r => (r.grade === 'A' || r.grade === 'B') && r.pf >= 1.3 && r.netPct > 0);
+    dataShortTerm = dataShortTerm.filter(r => (r.grade === 'A' || r.grade === 'B') && r.pf >= 1.3 && r.netPct > 0);
   }
+
   
   const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
   dataIntraday.forEach(r => {
@@ -823,6 +837,18 @@ function buildRowHTML(r) {
   };
   const timeStr = formatTime(r.sigTime);
 
+  // Quality stars based on signalScore (out of 7 max conditions)
+  const isActiveSignal = ['BUY_NEW','HOLD_LONG','SELL_NEW','HOLD_SHORT'].includes(r.signal);
+  const scoreVal = r.signalScore || 0;
+  const starColor = (r.signal === 'BUY_NEW' || r.signal === 'HOLD_LONG') ? '#3fb950' :
+                    (r.signal === 'SELL_NEW' || r.signal === 'HOLD_SHORT') ? '#BF40BF' : '#6E7681';
+  const qualityStars = isActiveSignal
+    ? `<span class="sig-quality" style="color:${starColor};">${scoreVal >= 5 ? '★★★' : scoreVal >= 4 ? '★★☆' : '★☆☆'}</span>`
+    : '';
+
+  // Dim row if grade D or FLAT with poor PF
+  const isDim = r.grade === 'D' || (r.signal === 'FLAT' && r.pf < 1.0);
+
   const dotClass = (r.signal === 'BUY_NEW' || r.signal === 'HOLD_LONG') ? 'on-buy' :
                    (r.signal === 'SELL_NEW' || r.signal === 'HOLD_SHORT') ? 'on-sell' : '';
   const dotCount = r.pf >= 1.5 ? 3 : r.pf >= 1.2 ? 2 : 1;
@@ -835,22 +861,22 @@ function buildRowHTML(r) {
 
   let sigHTML = '';
   if (r.signal === 'BUY_NEW') {
-    sigHTML = `<div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY${dots}</div>
+    sigHTML = `<div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY${dots}${qualityStars}</div>
                <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
                <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
   } else if (r.signal === 'HOLD_LONG') {
-    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG${dots}</div>
+    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG${dots}${qualityStars}</div>
                <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
                <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
   } else if (r.signal === 'EXIT_LONG') {
     sigHTML = `<div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT LONG</div>
                <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
   } else if (r.signal === 'SELL_NEW') {
-    sigHTML = `<div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT${dots}</div>
+    sigHTML = `<div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT${dots}${qualityStars}</div>
                <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
                <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
   } else if (r.signal === 'HOLD_SHORT') {
-    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT${dots}</div>
+    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT${dots}${qualityStars}</div>
                <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
                <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
   } else if (r.signal === 'EXIT_SHORT') {
@@ -860,7 +886,7 @@ function buildRowHTML(r) {
     sigHTML = `<div style="color:var(--color-text-tertiary);">⚪ FLAT</div>`;
   }
 
-  return `<tr class="tr-row" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
+  return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
     <td style="color:var(--color-text-tertiary)">${r.rank}</td>
     <td style="font-weight:500">${r.s}</td>
     <td><span class="sbadge">${r.sec}</span></td>
@@ -1152,10 +1178,12 @@ function setSec(s){
   sortAndRender();
 }
 
-function setSignalFilter(s){
-  activeSig=s;
-  document.getElementById('btn-all-sig').classList.toggle('on', s==='ALL');
-  document.getElementById('btn-act-sig').classList.toggle('on', s==='ACTIVE');
+function setSignalFilter(f) {
+  activeSig = f;
+  // Update button states
+  document.getElementById('btn-all-sig').className  = 'fpill' + (f === 'ALL'     ? ' on' : '');
+  document.getElementById('btn-act-sig').className  = 'fpill' + (f === 'ACTIVE'  ? ' on' : '');
+  document.getElementById('btn-qual-sig').className = 'fpill' + (f === 'QUALITY' ? ' quality-on' : '');
   sortAndRender();
 }
 
