@@ -306,41 +306,54 @@ function backtest(px, ts, vl, params) {
     let closedOnThisBar = false;
     let closeReason = '';
 
-    const isLastBarOfDay = (i === N - 1) || (new Date(ts[i]).getDate() !== new Date(ts[i+1]).getDate());
-    
-    if (tradeDir !== 0 && interval === '15m' && isLastBarOfDay) {
+    const isLastBarOfDay = interval === '15m' &&
+      ((i === N - 1) || (new Date(ts[i]).getDate() !== new Date(ts[i+1]).getDate()));
+
+    if (tradeDir !== 0 && isLastBarOfDay) {
       const pnl = tradeDir === 1 ? (px[i] - entry) : (entry - px[i]);
-      trades.push({ 
-        type: tradeDir === 1 ? 'LONG' : 'SHORT', 
-        win: pnl > 0, 
-        entry, 
-        exit: px[i], 
-        pnl, 
-        bars: i - eb, 
-        entryTime: ts[eb], 
-        exitTime: ts[i],
-        closeReason: 'EOD Square-off'
-      });
-      tradeDir = 0;
-      closedOnThisBar = true;
-      continue;
+      // Only square off if in loss — let winners run to next day
+      if (pnl < 0) {
+        trades.push({
+          type: tradeDir === 1 ? 'LONG' : 'SHORT',
+          win: false, entry, exit: px[i], pnl,
+          bars: i - eb, entryTime: ts[eb], exitTime: ts[i],
+          closeReason: 'EOD Square-off'
+        });
+        tradeDir = 0;
+        closedOnThisBar = true;
+        continue;
+      }
     }
 
     if (tradeDir !== 0) {
       if (tradeDir === 1) {
-        if (px[i] <= stpl) { trades.push({ type: 'LONG', win: false, entry, exit: px[i], pnl: -(entry - stpl), bars: i - eb, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss'; }
-        else if (px[i] >= tp) { trades.push({ type: 'LONG', win: true, entry, exit: px[i], pnl: tp - entry, bars: i - eb, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit'; }
-        else if (i - eb >= timeStop) { const pnl = px[i] - entry; trades.push({ type: 'LONG', win: pnl > 0, entry, exit: px[i], pnl, bars: timeStop, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Time Stop'; }
-        
+        if (px[i] <= stpl) {
+          trades.push({ type:'LONG', win:false, entry, exit:px[i], pnl:stpl-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
+        } else if (px[i] >= tp) {
+          trades.push({ type:'LONG', win:true, entry, exit:px[i], pnl:tp-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit';
+        } else if (i - eb >= timeStop) {
+          const pnl = px[i] - entry;
+          trades.push({ type:'LONG', win:pnl>0, entry, exit:px[i], pnl, bars:timeStop, entryTime:ts[eb], exitTime:ts[i], closeReason:'Time Stop' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Time Stop';
+        }
         if (i === N - 1) {
           if (tradeDir === 1) { currentSignal = 'HOLD_LONG'; signalDetails = `Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | SL: ${stpl.toFixed(2)}`; }
           else if (closedOnThisBar) { currentSignal = 'EXIT_LONG'; signalDetails = `Hit ${closeReason}`; }
         }
       } else if (tradeDir === -1) {
-        if (px[i] >= stpl) { trades.push({ type: 'SHORT', win: false, entry, exit: px[i], pnl: -(stpl - entry), bars: i - eb, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss'; }
-        else if (px[i] <= tp) { trades.push({ type: 'SHORT', win: true, entry, exit: px[i], pnl: entry - tp, bars: i - eb, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit'; }
-        else if (i - eb >= timeStop) { const pnl = entry - px[i]; trades.push({ type: 'SHORT', win: pnl > 0, entry, exit: px[i], pnl, bars: timeStop, entryTime: ts[eb], exitTime: ts[i] }); tradeDir = 0; closedOnThisBar = true; closeReason = 'Time Stop'; }
-        
+        if (px[i] >= stpl) {
+          trades.push({ type:'SHORT', win:false, entry, exit:px[i], pnl:stpl-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
+        } else if (px[i] <= tp) {
+          trades.push({ type:'SHORT', win:true, entry, exit:px[i], pnl:entry-tp, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit';
+        } else if (i - eb >= timeStop) {
+          const pnl = entry - px[i];
+          trades.push({ type:'SHORT', win:pnl>0, entry, exit:px[i], pnl, bars:timeStop, entryTime:ts[eb], exitTime:ts[i], closeReason:'Time Stop' });
+          tradeDir = 0; closedOnThisBar = true; closeReason = 'Time Stop';
+        }
         if (i === N - 1) {
           if (tradeDir === -1) { currentSignal = 'HOLD_SHORT'; signalDetails = `Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | SL: ${stpl.toFixed(2)}`; }
           else if (closedOnThisBar) { currentSignal = 'EXIT_SHORT'; signalDetails = `Hit ${closeReason}`; }
@@ -348,20 +361,33 @@ function backtest(px, ts, vl, params) {
       }
       continue;
     }
-    
+
     if (!e9[i] || !e21[i] || !rsi[i] || !ml[i] || !sl[i]) continue;
-    const ecLong = e9[i] > e21[i] && (e9[i - 1] || 0) <= (e21[i - 1] || 0);
-    const mcLong = ml[i] > sl[i] && (ml[i - 1] || 0) <= (sl[i - 1] || 0);
-    const ecShort = e9[i] < e21[i] && (e9[i - 1] || Infinity) >= (e21[i - 1] || 0);
-    const mcShort = ml[i] < sl[i] && (ml[i - 1] || Infinity) >= (sl[i - 1] || 0);
-    
+
+    // ── Require EMA crossover AND that trend was established ≥2 bars ────────
+    const ecLong  = e9[i] >  e21[i] && (e9[i-1] || 0)  <= (e21[i-1] || 0);
+    const ecShort = e9[i] <  e21[i] && (e9[i-1] || Infinity) >= (e21[i-1] || 0);
+    const mcLong  = ml[i] >  sl[i]  && (ml[i-1] || 0)  <= (sl[i-1] || 0);
+    const mcShort = ml[i] <  sl[i]  && (ml[i-1] || Infinity) >= (sl[i-1] || 0);
+
+    // ── Momentum: price above/below recent 5-bar average ────────────────────
+    const recentAvgLong  = i >= 5 ? (px.slice(i-5, i).reduce((a,b)=>a+b,0)/5) : null;
+    const recentAvgShort = recentAvgLong;
+    const momentumLong  = recentAvgLong  !== null && px[i] > recentAvgLong;
+    const momentumShort = recentAvgShort !== null && px[i] < recentAvgShort;
+
     let newEntryOnThisBar = 0;
-    
+
+    // ── LONG entry ──────────────────────────────────────────────────────────
     if (tradeDir === 0 && (ecLong || mcLong) && (direction === 'BOTH' || direction === 'LONG_ONLY')) {
-      let score = (e9[i] > e21[i] ? 1 : 0) + (rsi[i] > rsiLow && rsi[i] < rsiHigh ? 1 : 0) + (ml[i] > sl[i] ? 1 : 0);
-      if (bbMode === 1 && bbUp[i] !== null && px[i] > bbUp[i]) score++;
+      let score = 0;
+      if (e9[i] > e21[i]) score++;                                      // EMA trend up
+      if (rsi[i] > rsiLow && rsi[i] < 60) score++;                      // RSI in healthy long zone (not overbought)
+      if (ml[i] > sl[i]) score++;                                        // MACD bullish
+      if (momentumLong) score++;                                          // Price above 5-bar avg
+      if (bbMode === 1 && bbUp[i] !== null && px[i] > bbUp[i]) score++; // BB breakout
       if (bbMode === 2 && bbLow[i] !== null && px[i] > bbLow[i] && px[i-1] <= bbLow[i-1]) score++;
-      if (volM > 0 && volSma[i] !== null && vl[i] > volSma[i] * volM) score++;
+      if (volM > 0 && volSma[i] !== null && vl[i] > volSma[i] * volM) score++; // Volume surge
 
       if (score >= minS && e9[i] > e21[i]) {
         tradeDir = 1; entry = px[i];
@@ -370,9 +396,14 @@ function backtest(px, ts, vl, params) {
         newEntryOnThisBar = 1;
       }
     }
-    
+
+    // ── SHORT entry ─────────────────────────────────────────────────────────
     if (tradeDir === 0 && (ecShort || mcShort) && (direction === 'BOTH' || direction === 'SHORT_ONLY')) {
-      let score = (e9[i] < e21[i] ? 1 : 0) + (rsi[i] < rsiHigh ? 1 : 0) + (ml[i] < sl[i] ? 1 : 0);
+      let score = 0;
+      if (e9[i] < e21[i]) score++;                                        // EMA trend down
+      if (rsi[i] < rsiHigh && rsi[i] > 40) score++;                      // RSI in healthy short zone (not oversold)
+      if (ml[i] < sl[i]) score++;                                         // MACD bearish
+      if (momentumShort) score++;                                          // Price below 5-bar avg
       if (bbMode === 1 && bbLow[i] !== null && px[i] < bbLow[i]) score++;
       if (bbMode === 2 && bbUp[i] !== null && px[i] < bbUp[i] && px[i-1] >= bbUp[i-1]) score++;
       if (volM > 0 && volSma[i] !== null && vl[i] > volSma[i] * volM) score++;
@@ -431,10 +462,16 @@ function backtest(px, ts, vl, params) {
 }
 
 function getGrade(r) {
-  if (r.trades < 3) return { g: 'D', n: 3 };
-  if (r.winRate >= 55 && r.pf >= 1.5 && r.trades >= 8) return { g: 'A', n: 0 };
-  if (r.winRate >= 47 && r.pf >= 1.2 && r.trades >= 5) return { g: 'B', n: 1 };
-  if (r.winRate >= 40 && r.pf >= 1.0 && r.trades >= 3) return { g: 'C', n: 2 };
+  // Grade D — too few trades or unprofitable: suppress signals
+  if (r.trades < 4) return { g: 'D', n: 3 };
+  if (r.pf < 1.0)  return { g: 'D', n: 3 };   // Net losing strategy
+  if (r.netPct < 0) return { g: 'D', n: 3 };   // Negative total return
+  // Grade A — high conviction
+  if (r.winRate >= 55 && r.pf >= 1.6 && r.trades >= 8 && r.netPct > 5) return { g: 'A', n: 0 };
+  // Grade B — good
+  if (r.winRate >= 48 && r.pf >= 1.3 && r.trades >= 5) return { g: 'B', n: 1 };
+  // Grade C — marginal but profitable
+  if (r.winRate >= 42 && r.pf >= 1.05 && r.trades >= 4) return { g: 'C', n: 2 };
   return { g: 'D', n: 3 };
 }
 
@@ -532,7 +569,13 @@ function computeResults(cacheKey, params) {
   return rawData.map(item => {
     const r = backtest(item.px, item.ts, item.vl, {...params, interval});
     const { g, n } = getGrade(r);
-    
+
+    // Suppress live signals for Grade D stocks — strategy is unprofitable
+    if (g === 'D' && (r.signal === 'BUY_NEW' || r.signal === 'SELL_NEW')) {
+      r.signal = 'FLAT';
+      r.signalDetails = '';
+    }
+
     let chgPct = 0;
     if (item.px && item.px.length > 25) {
       const isDaily = cacheKey.includes('_1d_');
@@ -554,7 +597,8 @@ function computeResults(cacheKey, params) {
 }
 
 app.post('/api/screener', express.json(), async (req, res) => {
-  const params = req.body.params || { emaF: 9, emaS: 21, atrM: 2.0, rrR: 2.0, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25 };
+  // Refined default params — tighter entries, better R:R
+  const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, volM: 0 };
   const market = req.body.market || 'nifty';
   const interval = req.body.interval || '15m';
   const range = req.body.range || '20d';
