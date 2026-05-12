@@ -764,15 +764,57 @@ function switchModalTab(tab) {
 function openTradesModal(symbol) {
   let st = resultsIntraday.find(r => r.s === symbol) || resultsShortTerm.find(r => r.s === symbol);
   if (!st) return;
-  
-  switchModalTab('list'); // Reset to list view
-  
+
+  switchModalTab('list');
+
+  // ── Declare ALL shared variables ONCE at the top ──────────────────────────
+  const isCrypto   = st.sec === 'Crypto';
+  const isIntraday = resultsIntraday.some(r => r.s === symbol);
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+
+  // Groww variable margin: hash symbol → 3x, 4x, or 5x for intraday stocks
+  function getStockMargin(sym) {
+    let hash = 0;
+    for (let i = 0; i < sym.length; i++) hash = sym.charCodeAt(i) + ((hash << 5) - hash);
+    return 3 + (Math.abs(hash) % 3); // 3, 4, or 5
+  }
+  const stockMargin      = (isIntraday && !isCrypto) ? getStockMargin(symbol) : 1;
+  const effectiveCapital = startAmount * stockMargin;
+
+  // Groww brokerage/tax helper — returns { tax, charges }
+  function calcCosts(pnlPct) {
+    const grossProfit = effectiveCapital * (pnlPct / 100);
+    const buyValue    = effectiveCapital;
+    const sellValue   = effectiveCapital * (1 + pnlPct / 100);
+    const turnover    = buyValue + sellValue;
+    let tax = 0, charges = 0;
+
+    if (grossProfit > 0) tax = isCrypto ? grossProfit * 0.30 : grossProfit * 0.15;
+
+    if (isCrypto) {
+      charges = startAmount * 0.002;
+    } else {
+      const brokerageRate = 0.0005;
+      const maxBrokerage  = 20;
+      const brokerage     = Math.min(maxBrokerage, buyValue * brokerageRate)
+                          + Math.min(maxBrokerage, sellValue * brokerageRate);
+      const stt           = isIntraday ? sellValue * 0.00025 : turnover * 0.001;
+      const stampDuty     = isIntraday ? buyValue  * 0.00003 : buyValue  * 0.00015;
+      const transCharges  = turnover * 0.0000325;
+      const sebi          = turnover * 0.000001;
+      const gst           = (brokerage + transCharges) * 0.18;
+      charges = brokerage + stt + stampDuty + transCharges + sebi + gst;
+    }
+    return { grossProfit, tax, charges, netProfit: grossProfit - tax - charges };
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   let sizeHTML = '';
-  const isActiveLong = st.signal === 'BUY_NEW' || st.signal === 'HOLD_LONG';
+  const isActiveLong  = st.signal === 'BUY_NEW'  || st.signal === 'HOLD_LONG';
   const isActiveShort = st.signal === 'SELL_NEW' || st.signal === 'HOLD_SHORT';
-  
+
   if ((isActiveLong || isActiveShort) && st.sigE && st.sigSL) {
-    const riskPerShare = isActiveShort ? (st.sigSL - st.sigE) : (st.sigE - st.sigSL);
+    const riskPerShare    = isActiveShort ? (st.sigSL - st.sigE) : (st.sigE - st.sigSL);
     if (riskPerShare > 0) {
       const sharesFor10kRisk = Math.floor(10000 / riskPerShare);
       sizeHTML = `
@@ -782,147 +824,92 @@ function openTradesModal(symbol) {
             <div><span style="color:var(--color-text-tertiary)">Risk per share:</span> ${formatCurrency(riskPerShare)}</div>
             <div style="font-size:16px; font-weight:bold; color:#D4AF37;">${isActiveShort ? 'Short' : 'Buy'} ${sharesFor10kRisk} Shares</div>
           </div>
-        </div>
-      `;
+        </div>`;
     }
   }
 
-  document.getElementById('modalTitle').textContent = `Trade Details for ${st.n} (${symbol})`;
-  
+  document.getElementById('modalTitle').textContent =
+    `Trade Details for ${st.n} (${symbol})${isIntraday && !isCrypto ? ' | Groww Margin: ' + stockMargin + 'x' : ''}`;
+
   const tbody = document.getElementById('modal-tbody');
-  
+
   if (!st.tradeDetails || st.tradeDetails.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
   } else {
-    const headerHTML = sizeHTML ? `<tr><td colspan="6" style="padding:0; border:none;">${sizeHTML}</td></tr>` : '';
+    const headerHTML = sizeHTML ? `<tr><td colspan="7" style="padding:0;border:none;">${sizeHTML}</td></tr>` : '';
     tbody.innerHTML = headerHTML + st.tradeDetails.map((t, i) => {
       const cls = t.win ? 'win' : 'loss';
-      
+
       const formatTime = (ts) => {
         if (!ts) return '-';
         const d = new Date(ts);
-        return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+        return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'})
+             + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
       };
-      
+
       let holdingTime = '-';
       if (t.entryTime && t.exitTime) {
-        const diffMs = t.exitTime - t.entryTime;
-        const diffHrs = diffMs / (1000 * 60 * 60);
-        if (diffHrs >= 24) {
-          holdingTime = (diffHrs / 24).toFixed(1) + ' d';
-        } else {
-          holdingTime = diffHrs.toFixed(1) + ' h';
-        }
+        const diffHrs = (t.exitTime - t.entryTime) / (1000 * 60 * 60);
+        holdingTime = diffHrs >= 24 ? (diffHrs / 24).toFixed(1) + ' d' : diffHrs.toFixed(1) + ' h';
       } else {
         holdingTime = t.bars + ' bars';
       }
 
-      const pnlStyle = t.pnl > 0 
-        ? 'background:rgba(63,185,80,0.15); color:#3fb950; padding:2px 6px; border-radius:4px; font-weight:bold;' 
-        : 'background:rgba(248,81,73,0.15); color:#f85149; padding:2px 6px; border-radius:4px; font-weight:bold;';
+      const pnlStyle = t.pnl > 0
+        ? 'background:rgba(63,185,80,0.15);color:#3fb950;padding:2px 6px;border-radius:4px;font-weight:bold;'
+        : 'background:rgba(248,81,73,0.15);color:#f85149;padding:2px 6px;border-radius:4px;font-weight:bold;';
 
-      const tradeTypeLabel = t.type === 'SHORT' ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>' : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
+      const tradeTypeLabel = t.type === 'SHORT'
+        ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>'
+        : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
 
-      // Calculator Logic
-      const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-      const isCrypto = st.sec === 'Crypto';
-      const isIntraday = resultsIntraday.some(r => r.s === symbol);
-      const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
-      
-      const grossProfit = effectiveCapital * (t.pnlPct / 100);
-      let tax = 0;
-      let charges = 0;
-      
-      if (grossProfit > 0) {
-        if (isCrypto) {
-          tax = grossProfit * 0.30; // 30% tax
-        } else {
-          tax = grossProfit * 0.15; // 15% STCG
-        }
-      }
-      
-      if (isCrypto) {
-        charges = startAmount * 0.002; // 0.2% fee estimate
-      } else {
-        charges = 40; // Flat fee estimate
-        if (isIntraday) {
-          charges += effectiveCapital * 0.00025; // Add 0.025% for STT/volume charges
-        }
-      }
-      
-      const netProfit = grossProfit - tax - charges;
-      const netPnlStyle = netProfit > 0 ? 'color:#3FB950; font-weight:500;' : 'color:#F85149; font-weight:500;';
+      const { grossProfit, tax, charges, netProfit } = calcCosts(t.pnlPct);
+      const netPnlStyle = netProfit > 0 ? 'color:#3FB950;font-weight:500;' : 'color:#F85149;font-weight:500;';
+      const marginBadge = (isIntraday && !isCrypto)
+        ? `<span style="font-size:10px;color:#D29922;">(${stockMargin}x Margin)</span>` : '';
 
       return `<tr>
         <td style="color:var(--color-text-tertiary)">${st.tradeDetails.length - i}</td>
         <td class="${cls}">${t.win ? 'WIN' : 'LOSS'}${tradeTypeLabel}</td>
         <td>
           <div style="font-weight:500">${formatCurrency(t.entry)}</div>
-          <div style="font-size:9px; color:var(--color-text-tertiary)">${formatTime(t.entryTime)}</div>
+          <div style="font-size:9px;color:var(--color-text-tertiary)">${formatTime(t.entryTime)}</div>
         </td>
         <td>
           <div style="font-weight:500">${t.exit ? formatCurrency(t.exit) : '-'}</div>
-          <div style="font-size:9px; color:var(--color-text-tertiary)">${formatTime(t.exitTime)}</div>
+          <div style="font-size:9px;color:var(--color-text-tertiary)">${formatTime(t.exitTime)}</div>
         </td>
+        <td><div style="${pnlStyle}">${t.pnl > 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</div></td>
         <td>
-          <div style="${pnlStyle}">${t.pnl > 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</div>
-        </td>
-        <td>
-          <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)} ${isIntraday && !isCrypto ? '<span style="font-size:10px;color:#D29922;">(5x Margin)</span>' : ''}</div>
-          <div style="font-size:9px; color:var(--color-text-tertiary)">Tax: ${formatCurrency(tax)} | Fee: ${formatCurrency(charges)}</div>
+          <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)} ${marginBadge}</div>
+          <div style="font-size:9px;color:var(--color-text-tertiary)">Tax: ${formatCurrency(tax)} | Fee: ${formatCurrency(charges)}</div>
         </td>
         <td style="color:var(--color-text-secondary)">${holdingTime}</td>
       </tr>`;
     }).join('');
   }
-  
-  // Populate Monthly Table
-  const monthlyData = {};
-  const isCrypto = st.sec === 'Crypto';
-  const isIntraday = resultsIntraday.some(r => r.s === symbol);
-  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-  const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
 
+  // ── Monthly Breakdown (reuses shared variables from top) ──────────────────
+  const monthlyData = {};
   if (st.tradeDetails && st.tradeDetails.length > 0) {
     st.tradeDetails.forEach(t => {
       if (!t.exitTime) return;
-      const d = new Date(t.exitTime);
-      const key = d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-      
-      if (!monthlyData[key]) {
-        monthlyData[key] = { gross: 0, net: 0, trades: 0, wins: 0 };
-      }
-      
-      const grossProfit = effectiveCapital * (t.pnlPct / 100);
-      let tax = 0;
-      let charges = 0;
-      
-      if (grossProfit > 0) {
-        if (isCrypto) tax = grossProfit * 0.30;
-        else tax = grossProfit * 0.15;
-      }
-      if (isCrypto) charges = startAmount * 0.002;
-      else {
-        charges = 40;
-        if (isIntraday) charges += effectiveCapital * 0.00025;
-      }
-      
-      const netProfit = grossProfit - tax - charges;
-      
-      monthlyData[key].gross += grossProfit;
-      monthlyData[key].net += netProfit;
+      const key = new Date(t.exitTime).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+      if (!monthlyData[key]) monthlyData[key] = { gross: 0, net: 0, trades: 0, wins: 0 };
+      const { grossProfit, netProfit } = calcCosts(t.pnlPct);
+      monthlyData[key].gross  += grossProfit;
+      monthlyData[key].net    += netProfit;
       monthlyData[key].trades += 1;
       if (t.win) monthlyData[key].wins += 1;
     });
   }
 
   const monthlyTbody = document.getElementById('modal-monthly-tbody');
-  const sortedKeys = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
-  
+  const sortedKeys   = Object.keys(monthlyData).sort((a, b) => new Date(a) - new Date(b));
   monthlyTbody.innerHTML = sortedKeys.map(key => {
-    const m = monthlyData[key];
-    const wr = m.trades > 0 ? (m.wins / m.trades * 100).toFixed(1) : '0.0';
-    const netCls = m.net >= 0 ? 'color:#3FB950; font-weight:500;' : 'color:#F85149; font-weight:500;';
+    const m      = monthlyData[key];
+    const wr     = m.trades > 0 ? (m.wins / m.trades * 100).toFixed(1) : '0.0';
+    const netCls   = m.net   >= 0 ? 'color:#3FB950;font-weight:500;' : 'color:#F85149;font-weight:500;';
     const grossCls = m.gross >= 0 ? 'color:#3FB950;' : 'color:#F85149;';
     return `<tr>
       <td style="font-weight:500">${key}</td>
@@ -932,9 +919,15 @@ function openTradesModal(symbol) {
       <td style="${netCls}">${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}</td>
     </tr>`;
   }).join('');
-  
+
   document.getElementById('tradeModal').showModal();
 }
+
+  
+  switchModalTab('list'); // Reset to list view
+  
+  let sizeHTML = '';
+
 
 function buildSectorFilters(allResults){
   if (!allResults || !allResults.length) return;
