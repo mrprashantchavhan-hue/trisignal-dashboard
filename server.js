@@ -336,7 +336,7 @@ function backtest(px, ts, vl, params) {
           trades.push({ type:'LONG', win:false, entry, exit:px[i], pnl:px[i]-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
         } else if (px[i] >= tp) {
-          trades.push({ type:'LONG', win:true, entry, exit:px[i], pnl:tp-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
+          trades.push({ type:'LONG', win:true, entry, exit:tp, pnl:tp-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit';
         } else if (i - eb >= timeStop) {
           const pnl = px[i] - entry;
@@ -353,7 +353,7 @@ function backtest(px, ts, vl, params) {
           trades.push({ type:'SHORT', win:false, entry, exit:px[i], pnl:entry-px[i], bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
         } else if (px[i] <= tp) {
-          trades.push({ type:'SHORT', win:true, entry, exit:px[i], pnl:entry-tp, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
+          trades.push({ type:'SHORT', win:true, entry, exit:tp, pnl:entry-tp, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Take Profit';
         } else if (i - eb >= timeStop) {
           const pnl = entry - px[i];
