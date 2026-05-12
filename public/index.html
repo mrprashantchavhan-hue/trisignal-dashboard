@@ -202,7 +202,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
         <th style="width:82px" data-k="sec">Sector <span class="sa">↕</span></th>
         <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
-        <th style="width:72px" data-k="signal">Live Signal <span class="sa">↕</span></th>
+        <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
         <th style="width:52px" data-k="trades">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
@@ -228,7 +228,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
         <th style="width:82px" data-k="sec">Sector <span class="sa">↕</span></th>
         <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
-        <th style="width:72px" data-k="signal">Live Signal <span class="sa">↕</span></th>
+        <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
         <th style="width:52px" data-k="trades">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
@@ -702,17 +702,33 @@ function renderTable(data, targetId){
     const timeStr = formatTime(r.sigTime);
     
     if (r.signal === 'BUY_NEW') {
-      sigHTML = `<div style="color:#3FB950; font-weight:bold;">🟢 BUY ENTRY <span style="color:var(--color-text-tertiary);font-size:10px">at ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `
+        <div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY</div>
+        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
+        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_LONG') {
-      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD LONG <span style="color:var(--color-text-tertiary);font-size:10px">since ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `
+        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG</div>
+        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
+        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_LONG') {
-      sigHTML = `<div style="color:#F85149; font-weight:bold;">🔴 EXIT LONG</div><div style="font-size:10px; color:var(--color-text-secondary); margin-top:4px;">${r.signalDetails}</div>`;
+      sigHTML = `
+        <div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT LONG</div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
     } else if (r.signal === 'SELL_NEW') {
-      sigHTML = `<div style="color:#BF40BF; font-weight:bold;">🟣 SELL SHORT <span style="color:var(--color-text-tertiary);font-size:10px">at ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `
+        <div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT</div>
+        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
+        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_SHORT') {
-      sigHTML = `<div style="color:#D29922; font-weight:bold;">🟡 HOLD SHORT <span style="color:var(--color-text-tertiary);font-size:10px">since ${timeStr}</span></div><div style="font-size:10px; color:var(--color-text-primary); margin-top:4px;">${formattedDetails}</div>`;
+      sigHTML = `
+        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT</div>
+        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
+        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_SHORT') {
-      sigHTML = `<div style="color:#F85149; font-weight:bold;">🔴 EXIT SHORT</div><div style="font-size:10px; color:var(--color-text-secondary); margin-top:4px;">${r.signalDetails}</div>`;
+      sigHTML = `
+        <div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT SHORT</div>
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
     } else {
       sigHTML = `<div style="color:var(--color-text-tertiary);">⚪ FLAT</div>`;
     }
@@ -722,7 +738,7 @@ function renderTable(data, targetId){
       <td style="font-weight:500">${r.s}</td>
       <td><span class="sbadge">${r.sec}</span></td>
       <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}</td>
-      <td>${sigHTML}</td>
+      <td style="white-space:normal; line-height:1.5; padding:8px;">${sigHTML}</td>
       <td style="color:var(--color-text-secondary)">${r.trades}</td>
       <td class="${wrCls}">${r.winRate}%</td>
       <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
