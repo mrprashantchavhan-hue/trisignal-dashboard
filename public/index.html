@@ -1083,6 +1083,16 @@ function openTradesModal(symbol) {
              + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
       };
 
+      // Recalculate pnlPct from t.pnl (direction-correct) for display
+      // t.pnl is negative for losses, positive for wins — both LONG and SHORT
+      const displayPnlPct = (t.pnl / t.entry) * 100;
+
+      const pnlStyle = displayPnlPct >= 0
+        ? 'background:rgba(63,185,80,0.15);color:#3fb950;padding:2px 6px;border-radius:4px;font-weight:bold;'
+        : 'background:rgba(248,81,73,0.15);color:#f85149;padding:2px 6px;border-radius:4px;font-weight:bold;';
+
+      const { grossProfit, tax, charges, netProfit } = calcCosts(displayPnlPct);
+
       let holdingTime = '-';
       if (t.entryTime && t.exitTime) {
         const diffHrs = (t.exitTime - t.entryTime) / (1000 * 60 * 60);
@@ -1115,7 +1125,7 @@ function openTradesModal(symbol) {
           <div style="font-weight:500">${t.exit ? formatCurrency(t.exit) : '-'}</div>
           <div style="font-size:9px;color:var(--color-text-tertiary)">${formatTime(t.exitTime)}</div>
         </td>
-        <td><div style="${pnlStyle}">${t.pnl > 0 ? '+' : ''}${t.pnlPct.toFixed(2)}%</div></td>
+        <td><div style="${pnlStyle}">${displayPnlPct >= 0 ? '+' : ''}${displayPnlPct.toFixed(2)}%</div></td>
         <td>
           <div style="${netPnlStyle}">${netProfit > 0 ? '+' : ''}${formatCurrency(netProfit)} ${marginBadge}</div>
           <div style="font-size:9px;color:var(--color-text-tertiary)">Tax: ${formatCurrency(tax)} | Fee: ${formatCurrency(charges)}</div>

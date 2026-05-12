@@ -312,11 +312,14 @@ function backtest(px, ts, vl, params) {
 
     if (tradeDir !== 0 && isLastBarOfDay) {
       const pnl = tradeDir === 1 ? (px[i] - entry) : (entry - px[i]);
-      // Only square off if in loss — let winners run to next day
+      // EOD square-off: only cut losing positions, let winners run
       if (pnl < 0) {
         trades.push({
           type: tradeDir === 1 ? 'LONG' : 'SHORT',
-          win: false, entry, exit: px[i], pnl,
+          win: false, entry, exit: px[i],
+          // pnl is already directional: positive for longs going up, negative for going down
+          // For SHORT EOD: entry - exit (negative if price went up)
+          pnl: tradeDir === 1 ? (px[i] - entry) : (entry - px[i]),
           bars: i - eb, entryTime: ts[eb], exitTime: ts[i],
           closeReason: 'EOD Square-off'
         });
@@ -329,7 +332,8 @@ function backtest(px, ts, vl, params) {
     if (tradeDir !== 0) {
       if (tradeDir === 1) {
         if (px[i] <= stpl) {
-          trades.push({ type:'LONG', win:false, entry, exit:px[i], pnl:stpl-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
+          // LONG SL: price dropped to stpl → exit = px[i] ≈ stpl, pnl = exit - entry (negative)
+          trades.push({ type:'LONG', win:false, entry, exit:px[i], pnl:px[i]-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
         } else if (px[i] >= tp) {
           trades.push({ type:'LONG', win:true, entry, exit:px[i], pnl:tp-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
@@ -345,7 +349,8 @@ function backtest(px, ts, vl, params) {
         }
       } else if (tradeDir === -1) {
         if (px[i] >= stpl) {
-          trades.push({ type:'SHORT', win:false, entry, exit:px[i], pnl:stpl-entry, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
+          // SHORT SL: price rose to stpl → exit = px[i] ≈ stpl, pnl = entry - exit (negative, since exit > entry)
+          trades.push({ type:'SHORT', win:false, entry, exit:px[i], pnl:entry-px[i], bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Stop Loss' });
           tradeDir = 0; closedOnThisBar = true; closeReason = 'Stop Loss';
         } else if (px[i] <= tp) {
           trades.push({ type:'SHORT', win:true, entry, exit:px[i], pnl:entry-tp, bars:i-eb, entryTime:ts[eb], exitTime:ts[i], closeReason:'Take Profit' });
