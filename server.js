@@ -16,6 +16,10 @@ sentiment.registerLanguage('en', {
   }
 });
 app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self';");
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const STOCKS = [
@@ -530,6 +534,7 @@ function computeResults(cacheKey, params) {
 }
 
 app.post('/api/screener', express.json(), async (req, res) => {
+  console.log('API screener called with body:', req.body);
   const params = req.body.params || { emaF: 9, emaS: 21, atrM: 2.0, rrR: 2.0, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25 };
   const market = req.body.market || 'nifty';
   const interval = req.body.interval || '15m';
@@ -723,6 +728,11 @@ app.post('/api/news', express.json(), async (req, res) => {
     console.error('Error fetching news:', err.message);
     res.json([]);
   }
+});
+
+app.use((req, res, next) => {
+  console.log(`404 Fallback: ${req.method} ${req.url}`);
+  res.status(404).send(`Cannot ${req.method} ${req.url}`);
 });
 
 if (process.env.NODE_ENV !== 'production') {
