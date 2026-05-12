@@ -629,25 +629,30 @@ function computeResults(cacheKey, params) {
 }
 
 app.post('/api/screener', express.json(), async (req, res) => {
-  // Refined default params — tighter entries, better R:R
-  const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, volM: 0 };
-  const market = req.body.market || 'nifty';
-  const interval = req.body.interval || '15m';
-  const range = req.body.range || '20d';
-  const period1 = req.body.period1 || null;
-  const period2 = req.body.period2 || null;
-  const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
-  
-  if (!rawCache[cacheKey]) rawCache[cacheKey] = [];
-  
-  if (rawCache[cacheKey].length === 0 && !isFetching[cacheKey]) {
-    await fetchRealtimeData(market, interval, range, period1, period2);
-    res.json(computeResults(cacheKey, params));
-  } else if (!isFetching[cacheKey]) {
-    res.json(computeResults(cacheKey, params));
-    fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error(e));
-  } else {
-    res.json(computeResults(cacheKey, params));
+  try {
+    // Refined default params — tighter entries, better R:R
+    const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, volM: 0 };
+    const market = req.body.market || 'nifty';
+    const interval = req.body.interval || '15m';
+    const range = req.body.range || '20d';
+    const period1 = req.body.period1 || null;
+    const period2 = req.body.period2 || null;
+    const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
+    
+    if (!rawCache[cacheKey]) rawCache[cacheKey] = [];
+    
+    if (rawCache[cacheKey].length === 0 && !isFetching[cacheKey]) {
+      await fetchRealtimeData(market, interval, range, period1, period2);
+      res.json(computeResults(cacheKey, params));
+    } else if (!isFetching[cacheKey]) {
+      res.json(computeResults(cacheKey, params));
+      fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error(e));
+    } else {
+      res.json(computeResults(cacheKey, params));
+    }
+  } catch (err) {
+    console.error('Screener API Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch market data' });
   }
 });
 
