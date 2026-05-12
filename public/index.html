@@ -883,9 +883,14 @@ function buildRowHTML(r) {
     sigHTML = `<div style="color:var(--color-text-tertiary);">⚪ FLAT</div>`;
   }
 
+  const sentiment = (window.stockSentiment || {})[r.s];
+  let sentimentHTML = '';
+  if (sentiment === 'Bullish') sentimentHTML = ' <span title="Bullish Sentiment">🐂</span>';
+  else if (sentiment === 'Bearish') sentimentHTML = ' <span title="Bearish Sentiment">🐻</span>';
+
   return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
     <td style="color:var(--color-text-tertiary)">${r.rank}</td>
-    <td style="font-weight:500">${r.s}</td>
+    <td style="font-weight:500">${r.s}${sentimentHTML}</td>
     <td><span class="sbadge">${r.sec}</span></td>
     <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
     <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>
@@ -1237,16 +1242,18 @@ renderTable([], 'tbl-body-shortterm');
       }
     }
   });
-// --- NEWS FETCHING ---
+// --- NEWS SENTIMENT FETCHING ---
+window.stockSentiment = {}; // Global store for sentiment
+
 async function fetchNews() {
   const panel = document.getElementById('news-panel');
-  panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Analyzing live sentiment...</div>';
+  if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Analyzing live sentiment...</div>';
   
-  // Get top 3 assets by PF or win rate from combined results
+  // Get top 5 assets by PF to check sentiment (expanded from 3 since it's faster now)
   const sorted = [...resultsIntraday, ...resultsShortTerm].sort((a,b) => b.pf - a.pf).filter(r => r.trades > 0);
-  let top = sorted.slice(0, 3).map(r => r.s);
+  let top = sorted.slice(0, 5).map(r => r.s);
   if (!top.length) {
-    top = currentMarket === 'crypto' ? ['BTC-USD', 'ETH-USD'] : ['RELIANCE.NS', 'TCS.NS'];
+    top = currentMarket === 'crypto' ? ['BTC-USD', 'ETH-USD'] : ['RELIANCE', 'TCS'];
   }
   
   try {
@@ -1257,35 +1264,33 @@ async function fetchNews() {
     });
     const news = await res.json();
     
+    // Clear old sentiment
+    window.stockSentiment = {};
+    
     if (!news || news.length === 0) {
-      panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">No breaking news found for top assets.</div>';
+      if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">No recent news impact found.</div>';
       return;
     }
     
-    panel.innerHTML = news.map(n => {
-      let badge = '';
-      if (n.impact === 'Bullish') badge = '<span style="background:rgba(63,185,80,0.15); color:#3FB950; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(63,185,80,0.3);">🟢 BULLISH</span>';
-      else if (n.impact === 'Bearish') badge = '<span style="background:rgba(248,81,73,0.15); color:#F85149; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(248,81,73,0.3);">🔴 BEARISH</span>';
-      else badge = '<span style="background:rgba(139,148,158,0.15); color:#8B949E; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; border:1px solid rgba(139,148,158,0.3);">⚪ NEUTRAL</span>';
-      
-      const timeStr = new Date(n.time * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      const dt = new Date(n.time * 1000).toLocaleDateString();
-      
-      return `
-        <a href="${n.link}" target="_blank" style="text-decoration:none; display:flex; flex-direction:column; background:var(--color-background-secondary); border:1px solid var(--color-border-primary); padding:12px; border-radius:8px; transition:border 0.2s;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <div style="font-size:11px; font-weight:600; color:var(--color-text-info);">${n.ticker.replace('.NS','')}</div>
-            ${badge}
-          </div>
-          <div style="font-size:13px; font-weight:500; color:var(--color-text-primary); margin-bottom:12px; line-height:1.4;">${n.title}</div>
-          <div style="margin-top:auto; font-size:10px; color:var(--color-text-tertiary); text-align:right;">${dt} ${timeStr}</div>
-        </a>
-      `;
-    }).join('');
+    // Extract impact per stock
+    news.forEach(n => {
+      const ticker = n.ticker.replace('.NS','');
+      // Keep the strongest sentiment if multiple news items
+      if (!window.stockSentiment[ticker] || window.stockSentiment[ticker] === 'Neutral') {
+        window.stockSentiment[ticker] = n.impact;
+      }
+    });
+    
+    if (panel) {
+      panel.innerHTML = `<div style="color:var(--color-text-tertiary); font-size:12px;">Live sentiment applied to ${Object.keys(window.stockSentiment).length} active stocks.</div>`;
+    }
+    
+    // Trigger a re-render to show the emojis!
+    sortAndRender();
     
   } catch (err) {
     console.error(err);
-    panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">News engine offline.</div>';
+    if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Sentiment engine offline.</div>';
   }
 }
 

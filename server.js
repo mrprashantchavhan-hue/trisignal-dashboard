@@ -785,15 +785,20 @@ app.post('/api/news', express.json(), async (req, res) => {
   
   try {
     let allNews = [];
-    for (const t of tickers) {
-      const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${t}&newsCount=2`;
-      const response = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      const newsArr = response.data.news || [];
-      newsArr.forEach(n => {
-        n.relatedTicker = t;
-        allNews.push(n);
-      });
-    }
+    const promises = tickers.map(async (t) => {
+      try {
+        const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${t}&newsCount=2`;
+        const response = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const newsArr = response.data.news || [];
+        return newsArr.map(n => ({ ...n, relatedTicker: t }));
+      } catch (err) {
+        console.error(`Failed news for ${t}:`, err.message);
+        return [];
+      }
+    });
+    
+    const results = await Promise.all(promises);
+    results.forEach(arr => allNews.push(...arr));
     
     const processed = [];
     const seenTitles = new Set();
