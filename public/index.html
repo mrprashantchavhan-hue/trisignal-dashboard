@@ -580,6 +580,10 @@ async function fetchData() {
 
     const [dataIntraday, dataShortTerm] = await Promise.all([p1, p2]);
     
+    // Store previous prices for flash animation and signals for toast detection
+    window._prevPrices = window._prevPrices || {};
+    resultsIntraday.forEach(r => { window._prevPrices[r.s] = r.p; });
+
     // Detect new signals and fire toasts
     dataIntraday.forEach(r => {
       const prev = previousResults[r.s];
@@ -797,95 +801,148 @@ function updateCards(data){
   document.getElementById('c-pf').textContent=avgPF;
 }
 
-function renderTable(data, targetId){
-  const tbody=document.getElementById(targetId);
-  if(!data.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;">No data yet. Click "Poll Real-Time"</td></tr>';
+function buildRowHTML(r) {
+  const wrCls  = r.winRate >= 50 ? 'win' : 'loss';
+  const netCls = r.netPct  >= 0  ? 'win' : 'loss';
+  const pfCls  = r.pf >= 1.2 ? 'win' : r.pf < 1 ? 'loss' : '';
+  let priceCls = '';
+  const oldSig = previousResults[r.s];
+  // Price flash based on stored previous price (stored separately)
+  const oldP = (window._prevPrices || {})[r.s];
+  if (oldP && parseFloat(r.p) > parseFloat(oldP)) priceCls = 'price-up';
+  if (oldP && parseFloat(r.p) < parseFloat(oldP)) priceCls = 'price-down';
+
+  const isShort = r.signal.includes('SELL') || r.signal.includes('SHORT');
+  const formattedDetails = formatSignal(r.signalDetails, isShort);
+
+  const formatTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' +
+           d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+  };
+  const timeStr = formatTime(r.sigTime);
+
+  const dotClass = (r.signal === 'BUY_NEW' || r.signal === 'HOLD_LONG') ? 'on-buy' :
+                   (r.signal === 'SELL_NEW' || r.signal === 'HOLD_SHORT') ? 'on-sell' : '';
+  const dotCount = r.pf >= 1.5 ? 3 : r.pf >= 1.2 ? 2 : 1;
+  const dots = dotClass
+    ? `<span class="sig-dots">${Array(3).fill(0).map((_,i)=>`<span class="sig-dot ${i<dotCount?dotClass:''}"></span>`).join('')}</span>`
+    : '';
+
+  const chgArrow = r.chg > 0 ? `<span style="color:#3fb950;font-size:10px;"> ▲${r.chg.toFixed(1)}%</span>` :
+                   r.chg < 0 ? `<span style="color:#f85149;font-size:10px;"> ▼${Math.abs(r.chg).toFixed(1)}%</span>` : '';
+
+  let sigHTML = '';
+  if (r.signal === 'BUY_NEW') {
+    sigHTML = `<div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY${dots}</div>
+               <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
+               <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
+  } else if (r.signal === 'HOLD_LONG') {
+    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG${dots}</div>
+               <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
+               <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
+  } else if (r.signal === 'EXIT_LONG') {
+    sigHTML = `<div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT LONG</div>
+               <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
+  } else if (r.signal === 'SELL_NEW') {
+    sigHTML = `<div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT${dots}</div>
+               <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
+               <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
+  } else if (r.signal === 'HOLD_SHORT') {
+    sigHTML = `<div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT${dots}</div>
+               <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
+               <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
+  } else if (r.signal === 'EXIT_SHORT') {
+    sigHTML = `<div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT SHORT</div>
+               <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
+  } else {
+    sigHTML = `<div style="color:var(--color-text-tertiary);">⚪ FLAT</div>`;
+  }
+
+  return `<tr class="tr-row" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
+    <td style="color:var(--color-text-tertiary)">${r.rank}</td>
+    <td style="font-weight:500">${r.s}</td>
+    <td><span class="sbadge">${r.sec}</span></td>
+    <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
+    <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>
+    <td style="color:var(--color-text-secondary)">${r.trades}</td>
+    <td class="${wrCls}">${r.winRate}%</td>
+    <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
+    <td class="${netCls}">${r.netPct>=0?'+':''}${r.netPct}%</td>
+    <td class="${netCls}">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
+    <td style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
+    <td><span class="badge b${r.grade}">${r.grade}</span></td>
+  </tr>`;
+}
+
+function renderTable(data, targetId) {
+  const tbody = document.getElementById(targetId);
+
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;">No data yet. Click "Poll Real-Time"</td></tr>';
     return;
   }
-  
-  tbody.innerHTML=data.map(r=>{
-    const wrCls=r.winRate>=50?'win':'loss';
-    const netCls=r.netPct>=0?'win':'loss';
-    const pfCls=r.pf>=1.2?'win':r.pf<1?'loss':'';
-    let priceCls = '';
-    const oldP = previousResults[r.s];
-    if (oldP && r.p > oldP) priceCls = 'price-up';
-    if (oldP && r.p < oldP) priceCls = 'price-down';
 
-    let sigHTML = '';
-    const isShort = r.signal.includes('SELL') || r.signal.includes('SHORT');
-    const formattedDetails = formatSignal(r.signalDetails, isShort);
-    
-    const formatTime = (ts) => {
-      if (!ts) return '';
-      const d = new Date(ts);
-      return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
-    };
-    const timeStr = formatTime(r.sigTime);
+  // Save scroll position of the parent scrollable wrapper
+  const wrapper = tbody.closest('.tbl-wrap');
+  const scrollTop = wrapper ? wrapper.scrollTop : 0;
 
-    // Signal strength dots (1 dot per indicator: EMA trend, MACD crossover, RSI zone)
-    function strengthDots(sig) {
-      if (!sig || sig === 'FLAT') return '';
-      const isActive = ['BUY_NEW','HOLD_LONG','SELL_NEW','HOLD_SHORT'].includes(sig);
-      const dotClass = (sig === 'BUY_NEW' || sig === 'HOLD_LONG') ? 'on-buy' :
-                       (sig === 'SELL_NEW' || sig === 'HOLD_SHORT') ? 'on-sell' : 'on-hold';
-      const count = r.pf >= 1.5 ? 3 : r.pf >= 1.2 ? 2 : 1;
-      return isActive ? `<span class="sig-dots">${Array(3).fill(0).map((_,i)=>`<span class="sig-dot ${i<count?dotClass:''}"></span>`).join('')}</span>` : '';
-    }
+  // Build a map of new rows by symbol
+  const newRowMap = {};
+  data.forEach(r => { newRowMap[r.s] = r; });
 
-    // Price change arrow
-    const chgArrow = r.chg > 0 ? `<span style="color:#3fb950;font-size:10px;"> ▲${r.chg.toFixed(1)}%</span>` :
-                     r.chg < 0 ? `<span style="color:#f85149;font-size:10px;"> ▼${Math.abs(r.chg).toFixed(1)}%</span>` : '';
-    
-    if (r.signal === 'BUY_NEW') {
-      sigHTML = `
-        <div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY${strengthDots(r.signal)}</div>
-        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
-        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
-    } else if (r.signal === 'HOLD_LONG') {
-      sigHTML = `
-        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG${strengthDots(r.signal)}</div>
-        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
-        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
-    } else if (r.signal === 'EXIT_LONG') {
-      sigHTML = `
-        <div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT LONG</div>
-        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
-    } else if (r.signal === 'SELL_NEW') {
-      sigHTML = `
-        <div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT${strengthDots(r.signal)}</div>
-        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
-        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
-    } else if (r.signal === 'HOLD_SHORT') {
-      sigHTML = `
-        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT${strengthDots(r.signal)}</div>
-        <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
-        <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
-    } else if (r.signal === 'EXIT_SHORT') {
-      sigHTML = `
-        <div style="color:#F85149;font-weight:bold;font-size:12px;">🔴 EXIT SHORT</div>
-        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
+  // Build a map of existing rows by symbol
+  const existingRows = {};
+  Array.from(tbody.querySelectorAll('tr[data-sym]')).forEach(tr => {
+    existingRows[tr.dataset.sym] = tr;
+  });
+
+  // Build the new DOM order using a DocumentFragment (off-screen, no repaint)
+  const frag = document.createDocumentFragment();
+  const temp = document.createElement('tbody');
+
+  data.forEach(r => {
+    const newHTML = buildRowHTML(r);
+    const existing = existingRows[r.s];
+
+    if (existing) {
+      // Row exists — check if content actually changed before touching DOM
+      const newTemp = document.createElement('tbody');
+      newTemp.innerHTML = newHTML;
+      const newTr = newTemp.firstElementChild;
+
+      if (existing.innerHTML !== newTr.innerHTML) {
+        // Only update changed cells to minimise repaints
+        Array.from(newTr.children).forEach((newTd, i) => {
+          const oldTd = existing.children[i];
+          if (oldTd && oldTd.outerHTML !== newTd.outerHTML) {
+            oldTd.outerHTML = newTd.outerHTML;
+          }
+        });
+      }
+      frag.appendChild(existing);
     } else {
-      sigHTML = `<div style="color:var(--color-text-tertiary);">⚪ FLAT</div>`;
+      // New row — insert fresh
+      temp.innerHTML = newHTML;
+      frag.appendChild(temp.firstElementChild);
     }
+  });
 
-    return `<tr class="tr-row" onclick="openTradesModal('${r.s}')">
-      <td style="color:var(--color-text-tertiary)">${r.rank}</td>
-      <td style="font-weight:500">${r.s}</td>
-      <td><span class="sbadge">${r.sec}</span></td>
-      <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
-      <td style="white-space:normal; line-height:1.5; padding:8px;">${sigHTML}</td>
-      <td style="color:var(--color-text-secondary)">${r.trades}</td>
-      <td class="${wrCls}">${r.winRate}%</td>
-      <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
-      <td class="${netCls}">${r.netPct>=0?'+':''}${r.netPct}%</td>
-      <td class="${netCls}">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
-      <td style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
-      <td><span class="badge b${r.grade}">${r.grade}</span></td>
-    </tr>`;
-  }).join('');
+  // Remove rows that are no longer in the data
+  Array.from(tbody.querySelectorAll('tr[data-sym]')).forEach(tr => {
+    if (!newRowMap[tr.dataset.sym]) tr.remove();
+  });
+
+  // Append reordered/updated rows — single DOM write, no full innerHTML replace
+  tbody.appendChild(frag);
+
+  // Restore scroll position to prevent jump
+  if (wrapper) wrapper.scrollTop = scrollTop;
 }
+
+
+
 
 function switchModalTab(tab) {
   const isList = tab === 'list';
