@@ -1048,17 +1048,28 @@ function openTradesModal(symbol) {
   let sizeHTML = '';
   const isActiveLong  = st.signal === 'BUY_NEW'  || st.signal === 'HOLD_LONG';
   const isActiveShort = st.signal === 'SELL_NEW' || st.signal === 'HOLD_SHORT';
+  const entryPx       = st.sigE || parseFloat(st.p) || 0;
 
-  if ((isActiveLong || isActiveShort) && st.sigE && st.sigSL) {
-    const riskPerShare    = isActiveShort ? (st.sigSL - st.sigE) : (st.sigE - st.sigSL);
+  if ((isActiveLong || isActiveShort) && entryPx > 0 && st.sigSL) {
+    const riskPerShare = isActiveShort ? (st.sigSL - entryPx) : (entryPx - st.sigSL);
     if (riskPerShare > 0) {
-      const sharesFor10kRisk = Math.floor(10000 / riskPerShare);
+      const idealShares = Math.floor(10000 / riskPerShare);
+      const maxShares   = Math.floor(effectiveCapital / entryPx);
+      const actualShares = Math.min(idealShares, maxShares);
+      const isCapped    = idealShares > maxShares;
+
       sizeHTML = `
         <div style="background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.3); border-radius:8px; padding:12px; margin-bottom:16px;">
-          <div style="font-size:11px; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:4px; font-weight:600;">Pro Position Sizer (₹10,000 Risk)</div>
+          <div style="font-size:11px; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:4px; font-weight:600;">Pro Position Sizer (Max ₹10,000 Risk)</div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div><span style="color:var(--color-text-tertiary)">Risk per share:</span> ${formatCurrency(riskPerShare)}</div>
-            <div style="font-size:16px; font-weight:bold; color:#D4AF37;">${isActiveShort ? 'Short' : 'Buy'} ${sharesFor10kRisk} Shares</div>
+            <div>
+              <span style="color:var(--color-text-tertiary)">Risk per share:</span> ${formatCurrency(riskPerShare)}<br>
+              <span style="color:var(--color-text-tertiary)">Max affordable:</span> ${maxShares} shares
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:16px; font-weight:bold; color:#D4AF37;">${isActiveShort ? 'Short' : 'Buy'} ${actualShares} Shares</div>
+              ${isCapped ? `<div style="font-size:10px; color:#f85149; margin-top:2px;">⚠️ Capped by available capital</div>` : ''}
+            </div>
           </div>
         </div>`;
     }

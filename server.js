@@ -40,9 +40,9 @@ const STOCKS = [
   {s:'WIPRO', n:'Wipro', sec:'IT'},
   {s:'HCLTECH', n:'HCL Technologies', sec:'IT'},
   {s:'TECHM', n:'Tech Mahindra', sec:'IT'},
-  {s:'LTIM', ys:'540005.BO', n:'LTIMindtree', sec:'IT'},
+  {s:'LTIM', n:'LTIMindtree', sec:'IT'},
   {s:'MARUTI', n:'Maruti Suzuki', sec:'Auto'},
-  {s:'TATAMOTORS', ys:'TMPV.NS', n:'Tata Motors', sec:'Auto'},
+  {s:'TATAMOTORS', n:'Tata Motors', sec:'Auto'},
   {s:'M&M', n:'Mahindra & Mahindra', sec:'Auto'},
   {s:'HEROMOTOCO', n:'Hero MotoCorp', sec:'Auto'},
   {s:'EICHERMOT', n:'Eicher Motors', sec:'Auto'},
@@ -491,6 +491,7 @@ function getGrade(r) {
 // Store RAW prices
 const rawCache = {};
 const isFetching = {};
+const lastFetchTime = {}; // Bug 5 Fix: Prevent spamming Yahoo
 
 async function fetchWithRetry(url, retries = 2) {
   const endpoints = [
@@ -519,13 +520,20 @@ async function fetchWithRetry(url, retries = 2) {
 async function fetchRealtimeData(market, interval, range, period1, period2) {
   const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
   if (isFetching[cacheKey]) return;
+
+  // Bug 5 Fix: Don't fetch if data is less than 60 seconds old
+  const now = Date.now();
+  if (lastFetchTime[cacheKey] && (now - lastFetchTime[cacheKey] < 60000)) {
+    return;
+  }
+
   isFetching[cacheKey] = true;
   console.log(`Fetching raw Yahoo Finance data for ${cacheKey}...`);
-  const newRawData = [];
-
-  const list = market === 'crypto' ? CRYPTO : STOCKS;
-
-  const chunkSize = 30; // Reduced chunk size for more reliability
+  
+  try {
+    const newRawData = [];
+    const list = market === 'crypto' ? CRYPTO : STOCKS;
+    const chunkSize = 30; // Reduced chunk size for more reliability
   for (let i = 0; i < list.length; i += chunkSize) {
     const chunk = list.slice(i, i + chunkSize);
     const promises = chunk.map(async (st) => {
@@ -570,9 +578,12 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
     await new Promise(r => setTimeout(r, 100)); // 100ms breather between chunks
   }
   
-  rawCache[cacheKey] = newRawData;
-  isFetching[cacheKey] = false;
-  console.log(`Raw fetch complete for ${cacheKey}.`);
+    rawCache[cacheKey] = newRawData;
+    lastFetchTime[cacheKey] = Date.now(); // Update last fetch time
+    console.log(`Raw fetch complete for ${cacheKey}.`);
+  } finally {
+    isFetching[cacheKey] = false; // Always release lock
+  }
 }
 
 
