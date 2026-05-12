@@ -515,7 +515,7 @@ async function fetchWithRetry(url, retries = 2) {
           'Accept': 'application/json',
           'Accept-Language': 'en-US,en;q=0.9'
         },
-        timeout: 10000
+        timeout: 3000
       });
       return res;
     } catch (err) {
