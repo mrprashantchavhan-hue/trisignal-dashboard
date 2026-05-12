@@ -307,8 +307,16 @@ function backtest(px, ts, vl, params) {
     let closedOnThisBar = false;
     let closeReason = '';
 
-    const isLastBarOfDay = interval === '15m' &&
-      ((i === N - 1) || (new Date(ts[i]).getDate() !== new Date(ts[i+1]).getDate()));
+    // Reset signal to FLAT if not in a position (Fixes Sticky Signal Bug)
+    if (tradeDir === 0) {
+      currentSignal = 'FLAT';
+      signalDetails = '';
+    }
+
+    // Timezone-aware EOD detection for IST (Fixes Bug 2)
+    const dateStr = new Date(ts[i]).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' });
+    const nextDateStr = ts[i+1] ? new Date(ts[i+1]).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '';
+    const isLastBarOfDay = interval === '15m' && (i === N - 1 || dateStr !== nextDateStr);
 
     if (tradeDir !== 0 && isLastBarOfDay) {
       const pnl = tradeDir === 1 ? (px[i] - entry) : (entry - px[i]);

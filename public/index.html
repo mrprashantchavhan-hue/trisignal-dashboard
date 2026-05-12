@@ -727,8 +727,9 @@ async function autoOptimize() {
 }
 
 function sortAndRender(){
-  let dataIntraday = [...resultsIntraday];
-  let dataShortTerm = [...resultsShortTerm];
+  // Fix Bug 3: Deep copy objects to prevent mutating global state
+  let dataIntraday = resultsIntraday.map(r => ({...r}));
+  let dataShortTerm = resultsShortTerm.map(r => ({...r}));
   
   if(activeSec!=='All') {
     dataIntraday = dataIntraday.filter(r=>r.sec===activeSec);
