@@ -766,7 +766,13 @@ function openTradesModal(symbol) {
   if (!st) return;
   
   switchModalTab('list'); // Reset to list view
-  
+
+  // Declare all shared variables at top to avoid duplicate const errors
+  const isCrypto = st.sec === 'Crypto';
+  const isIntraday = resultsIntraday.some(r => r.s === symbol);
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  const effectiveCapital = startAmount;
+
   let sizeHTML = '';
   const isActiveLong = st.signal === 'BUY_NEW' || st.signal === 'HOLD_LONG';
   const isActiveShort = st.signal === 'SELL_NEW' || st.signal === 'HOLD_SHORT';
@@ -788,11 +794,11 @@ function openTradesModal(symbol) {
   }
 
   document.getElementById('modalTitle').textContent = `Trade Details for ${st.n} (${symbol})`;
-  
+
   const tbody = document.getElementById('modal-tbody');
   
   if (!st.tradeDetails || st.tradeDetails.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px">${sizeHTML}No past trades executed.</td></tr>`;
   } else {
     const headerHTML = sizeHTML ? `<tr><td colspan="6" style="padding:0; border:none;">${sizeHTML}</td></tr>` : '';
     tbody.innerHTML = headerHTML + st.tradeDetails.map((t, i) => {
@@ -823,10 +829,7 @@ function openTradesModal(symbol) {
 
       const tradeTypeLabel = t.type === 'SHORT' ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>' : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
 
-      // Calculator Logic
-      const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-      const effectiveCapital = startAmount * stockMargin;
-      
+      // Calculator Logic (using effectiveCapital defined at function top)
       const grossProfit = effectiveCapital * (t.pnlPct / 100);
       const buyValue = effectiveCapital;
       const sellValue = effectiveCapital * (1 + t.pnlPct / 100);
@@ -898,12 +901,8 @@ function openTradesModal(symbol) {
     }).join('');
   }
   
-  // Populate Monthly Table
+  // Populate Monthly Table (isCrypto, isIntraday, effectiveCapital defined above)
   const monthlyData = {};
-  const isCrypto = st.sec === 'Crypto';
-  const isIntraday = resultsIntraday.some(r => r.s === symbol);
-  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
-  const effectiveCapital = isIntraday && !isCrypto ? startAmount * 5 : startAmount;
 
   if (st.tradeDetails && st.tradeDetails.length > 0) {
     st.tradeDetails.forEach(t => {
