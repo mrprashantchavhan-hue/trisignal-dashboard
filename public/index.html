@@ -109,6 +109,34 @@ th.sorted .sa { opacity: 1; color: var(--color-text-primary); }
 .sig-sell { color: #F85149; font-weight: bold; }
 .sig-hold { color: var(--color-text-secondary); }
 
+/* Progress bar */
+#progress-bar-wrap { height: 3px; background: var(--color-border-tertiary); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+#progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #238636, #3fb950); border-radius: 2px; transition: width 0.3s ease; }
+
+/* Auto-refresh countdown ring */
+.refresh-ring { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-tertiary); }
+.countdown-circle { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-border-primary); border-top-color: #3fb950; animation: spin 30s linear; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Toast notifications */
+#toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--color-background-secondary); border: 1px solid var(--color-border-primary); border-radius: 8px; padding: 10px 14px; font-size: 12px; min-width: 260px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; }
+.toast.buy  { border-left: 3px solid #3FB950; }
+.toast.sell { border-left: 3px solid #BF40BF; }
+.toast.info { border-left: 3px solid #58A6FF; }
+@keyframes slideIn { from { opacity:0; transform: translateX(30px); } to { opacity:1; transform: translateX(0); } }
+@keyframes slideOut { from { opacity:1; transform: translateX(0); } to { opacity:0; transform: translateX(30px); } }
+
+/* Signal strength dots */
+.sig-dots { display: inline-flex; gap: 2px; margin-left: 4px; }
+.sig-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-primary); }
+.sig-dot.on-buy  { background: #3FB950; }
+.sig-dot.on-sell { background: #BF40BF; }
+.sig-dot.on-hold { background: #D29922; }
+
+/* Live clock */
+#live-clock { font-size: 12px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+
 /* --- MODAL --- */
 dialog { background: var(--color-background-primary); color: var(--color-text-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; width: 600px; max-width: 95%; max-height: 80vh; padding: 0; margin: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
 dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
@@ -123,7 +151,16 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
 </head>
 <body>
 
-<h1 style="font-size: 20px; font-weight: 500; margin-bottom: 16px;">TriSignal Pro - Real-Time Dashboard</h1>
+<div id="toast-container"></div>
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+  <h1 style="font-size: 20px; font-weight: 600; margin:0; background: linear-gradient(90deg,#3fb950,#58A6FF); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">⚡ TriSignal Pro</h1>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span id="live-clock"></span>
+    <span id="countdown-text" style="font-size:11px; color:var(--color-text-tertiary);">Next refresh in <b id="countdown-num" style="color:#3fb950;">30</b>s</span>
+  </div>
+</div>
 
 <div id="sector-heatmap" style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;"></div>
 
@@ -160,6 +197,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <button class="run-btn" id="run-btn" onclick="fetchData()">Poll Real-Time</button>
   </div>
   <span style="font-size: 11px; color: var(--color-text-tertiary);" id="status-text">Waiting...</span>
+  <span style="font-size:11px; color:var(--color-text-tertiary); margin-left:4px;" id="fetch-count"></span>
 </div>
 
 <!-- TIMEFRAMES REMOVED IN FAVOR OF DUAL PANELS -->
@@ -431,10 +469,58 @@ function formatSignal(raw, isShort) {
 // --- SCREENER DATA ---
 const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH'};
 let resultsIntraday = [], resultsShortTerm = [];
-let previousResults = {}; // Map of symbol -> price for highlighting
+let previousResults = {};
 let sortKey = 'pf', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
 let schedTimer = null;
 let currentMarket = 'nifty';
+let fetchCount = 0;
+let countdownTimer = null;
+let countdownVal = 30;
+
+// ── Live clock ─────────────────────────────────────────────
+function updateClock() {
+  const d = new Date();
+  document.getElementById('live-clock').textContent =
+    d.toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'}) + ' ' +
+    d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Auto-refresh countdown ──────────────────────────────────
+function resetCountdown() {
+  clearInterval(countdownTimer);
+  countdownVal = 30;
+  document.getElementById('countdown-num').textContent = countdownVal;
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    document.getElementById('countdown-num').textContent = countdownVal;
+    if (countdownVal <= 0) {
+      clearInterval(countdownTimer);
+      fetchData();
+    }
+  }, 1000);
+}
+
+// ── Toast notification ──────────────────────────────────────
+function showToast(symbol, signal, name) {
+  const container = document.getElementById('toast-container');
+  const isLong = signal === 'BUY_NEW';
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (isLong ? 'buy' : 'sell');
+  toast.innerHTML = `
+    <span style="font-size:18px">${isLong ? '🟢' : '🟣'}</span>
+    <div>
+      <div style="font-weight:600; color:${isLong ? '#3FB950' : '#BF40BF'}">${isLong ? '🔔 BUY Signal' : '🔔 SELL SHORT Signal'}</div>
+      <div style="color:var(--color-text-secondary); font-size:11px; margin-top:2px;">${name} (${symbol})</div>
+    </div>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 5000);
+}
 
 function setMarket(m) {
   currentMarket = m;
@@ -460,6 +546,16 @@ async function fetchData() {
   btn.disabled = true;
   btn.textContent = 'Fetching...';
   sts.textContent = 'Contacting Yahoo Finance...';
+
+  // Progress bar animation
+  const bar = document.getElementById('progress-bar');
+  bar.style.width = '0%';
+  bar.style.transition = 'width 0.3s ease';
+  let prog = 0;
+  const progTimer = setInterval(() => {
+    prog = Math.min(prog + Math.random() * 8, 85);
+    bar.style.width = prog + '%';
+  }, 400);
   
   let period1 = null;
   let period2 = null;
@@ -484,18 +580,45 @@ async function fetchData() {
 
     const [dataIntraday, dataShortTerm] = await Promise.all([p1, p2]);
     
-    // Store previous prices for highlighting (using intraday prices as they are the most recent)
-    resultsIntraday.forEach(r => { previousResults[r.s] = r.p; });
+    // Detect new signals and fire toasts
+    dataIntraday.forEach(r => {
+      const prev = previousResults[r.s];
+      const isNewSignal = (r.signal === 'BUY_NEW' || r.signal === 'SELL_NEW');
+      const prevWasFlat = !prev || prev === 'FLAT';
+      if (isNewSignal && prevWasFlat) {
+        showToast(r.s, r.signal, r.n);
+      }
+    });
+
+    // Store previous prices and signals for highlighting
+    resultsIntraday.forEach(r => { previousResults[r.s] = r.signal; });
     
     resultsIntraday = dataIntraday;
     resultsShortTerm = dataShortTerm;
     
-    sts.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    // Complete progress bar
+    clearInterval(progTimer);
+    bar.style.width = '100%';
+    setTimeout(() => { bar.style.width = '0%'; bar.style.transition = 'width 0s'; }, 600);
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
+    sts.textContent = `✅ Updated: ${timeStr}`;
+    
+    // Update fetch counter
+    fetchCount++;
+    document.getElementById('fetch-count').textContent = `(${fetchCount} polls)`;
+
+    // Reset countdown
+    resetCountdown();
+
     sortAndRender();
     fetchNews();
   } catch (e) {
     console.error(e);
-    sts.textContent = 'Error connecting to backend.';
+    clearInterval(progTimer);
+    bar.style.width = '0%';
+    sts.textContent = '❌ Error connecting to backend.';
   }
   
   btn.disabled = false;
@@ -700,15 +823,29 @@ function renderTable(data, targetId){
       return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
     };
     const timeStr = formatTime(r.sigTime);
+
+    // Signal strength dots (1 dot per indicator: EMA trend, MACD crossover, RSI zone)
+    function strengthDots(sig) {
+      if (!sig || sig === 'FLAT') return '';
+      const isActive = ['BUY_NEW','HOLD_LONG','SELL_NEW','HOLD_SHORT'].includes(sig);
+      const dotClass = (sig === 'BUY_NEW' || sig === 'HOLD_LONG') ? 'on-buy' :
+                       (sig === 'SELL_NEW' || sig === 'HOLD_SHORT') ? 'on-sell' : 'on-hold';
+      const count = r.pf >= 1.5 ? 3 : r.pf >= 1.2 ? 2 : 1;
+      return isActive ? `<span class="sig-dots">${Array(3).fill(0).map((_,i)=>`<span class="sig-dot ${i<count?dotClass:''}"></span>`).join('')}</span>` : '';
+    }
+
+    // Price change arrow
+    const chgArrow = r.chg > 0 ? `<span style="color:#3fb950;font-size:10px;"> ▲${r.chg.toFixed(1)}%</span>` :
+                     r.chg < 0 ? `<span style="color:#f85149;font-size:10px;"> ▼${Math.abs(r.chg).toFixed(1)}%</span>` : '';
     
     if (r.signal === 'BUY_NEW') {
       sigHTML = `
-        <div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY</div>
+        <div style="color:#3FB950;font-weight:bold;font-size:12px;">🟢 BUY ENTRY${strengthDots(r.signal)}</div>
         <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
         <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_LONG') {
       sigHTML = `
-        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG</div>
+        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD LONG${strengthDots(r.signal)}</div>
         <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
         <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_LONG') {
@@ -717,12 +854,12 @@ function renderTable(data, targetId){
         <div style="font-size:10px;color:var(--color-text-secondary);margin-top:3px;">${r.signalDetails}</div>`;
     } else if (r.signal === 'SELL_NEW') {
       sigHTML = `
-        <div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT</div>
+        <div style="color:#BF40BF;font-weight:bold;font-size:12px;">🟣 SELL SHORT${strengthDots(r.signal)}</div>
         <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">📅 ${timeStr}</div>
         <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'HOLD_SHORT') {
       sigHTML = `
-        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT</div>
+        <div style="color:#D29922;font-weight:bold;font-size:12px;">🟡 HOLD SHORT${strengthDots(r.signal)}</div>
         <div style="color:var(--color-text-tertiary);font-size:10px;margin-top:2px;">⏱ Since ${timeStr}</div>
         <div style="font-size:10px;color:var(--color-text-primary);margin-top:3px;">${formattedDetails}</div>`;
     } else if (r.signal === 'EXIT_SHORT') {
@@ -737,7 +874,7 @@ function renderTable(data, targetId){
       <td style="color:var(--color-text-tertiary)">${r.rank}</td>
       <td style="font-weight:500">${r.s}</td>
       <td><span class="sbadge">${r.sec}</span></td>
-      <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}</td>
+      <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
       <td style="white-space:normal; line-height:1.5; padding:8px;">${sigHTML}</td>
       <td style="color:var(--color-text-secondary)">${r.trades}</td>
       <td class="${wrCls}">${r.winRate}%</td>

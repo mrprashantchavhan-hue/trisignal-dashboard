@@ -72,7 +72,7 @@ const STOCKS = [
   {s:'HDFCLIFE', n:'HDFC Life Insurance', sec:'Insurance'},
   
   // Expanded F&O Coverage (High Volume / Liquidity)
-  {s:'ZOMATO', n:'Zomato', sec:'Consumer'},
+  {s:'ZOMATO', ys:'ZOMATO.NS', n:'Zomato', sec:'Consumer'},
   {s:'HAL', n:'Hindustan Aeronautics', sec:'Defense'},
   {s:'BEL', n:'Bharat Electronics', sec:'Defense'},
   {s:'BDL', n:'Bharat Dynamics', sec:'Defense'},
@@ -442,6 +442,30 @@ function getGrade(r) {
 const rawCache = {};
 const isFetching = {};
 
+async function fetchWithRetry(url, retries = 2) {
+  const endpoints = [
+    url.replace('query1.finance.yahoo.com', 'query1.finance.yahoo.com'),
+    url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com')
+  ];
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const endpoint = endpoints[Math.min(attempt, endpoints.length - 1)];
+    try {
+      const res = await axios.get(endpoint, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9'
+        },
+        timeout: 10000
+      });
+      return res;
+    } catch (err) {
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+}
+
 async function fetchRealtimeData(market, interval, range, period1, period2) {
   const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
   if (isFetching[cacheKey]) return;
@@ -451,7 +475,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
   const list = market === 'crypto' ? CRYPTO : STOCKS;
 
-  const chunkSize = 50; // Fetch up to 50 stocks simultaneously
+  const chunkSize = 30; // Reduced chunk size for more reliability
   for (let i = 0; i < list.length; i += chunkSize) {
     const chunk = list.slice(i, i + chunkSize);
     const promises = chunk.map(async (st) => {
@@ -462,8 +486,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
         const rStr = (!period1 || !period2) ? `&range=${range}` : '';
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}${rStr}${p1Str}${p2Str}`;
         
-        // Timeout prevents a single dead symbol from freezing the batch
-        const res = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 8000 });
+        const res = await fetchWithRetry(url, 2);
         const chart = res.data.chart;
         if (!chart || !chart.result || !chart.result[0].indicators.quote[0].close) throw new Error('No data');
         
@@ -494,13 +517,14 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
     const results = await Promise.all(promises);
     newRawData.push(...results);
-    await new Promise(r => setTimeout(r, 50)); // Small 50ms breather between chunks
+    await new Promise(r => setTimeout(r, 100)); // 100ms breather between chunks
   }
   
   rawCache[cacheKey] = newRawData;
   isFetching[cacheKey] = false;
   console.log(`Raw fetch complete for ${cacheKey}.`);
 }
+
 
 function computeResults(cacheKey, params) {
   const rawData = rawCache[cacheKey] || [];
