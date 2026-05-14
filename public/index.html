@@ -490,9 +490,9 @@ let previousResults = {};
 let sortKey = 'netPct', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
 let currentInterval = '15m';
 const TF_CONFIG = {
-  '5m':  { range: '7d',  label: '5m Scalp' },
+  '5m':  { range: '5d',  label: '5m Scalp' },
   '15m': { range: '60d', label: '15m Intraday' },
-  '30m': { range: '60d', label: '30m Intraday' },
+  '30m': { range: '30d', label: '30m Intraday' },
   '1h':  { range: '60d', label: '1H Swing Entry' },
   '1d':  { range: '5y',  label: 'Daily' },
   '1wk': { range: '5y',  label: 'Weekly' },
@@ -557,6 +557,7 @@ function setMarket(m) {
   document.getElementById('btn-crypto').style.color = m === 'crypto' ? '#fff' : '#8B949E';
   
   document.getElementById('c-mkt').textContent = m === 'nifty' ? 'across F&O Universe' : 'across Crypto';
+  window._marketSwitching = true; // Show loading indicator until new data arrives
   // We no longer clear resultsIntraday or render empty tables here.
   // The UI will simply keep showing the old data while the new data fetches instantly from cache,
   // completely eliminating any 'blank screen' or 'stuck' sensation!
@@ -632,8 +633,9 @@ async function fetchData() {
     // Store previous prices and signals for highlighting
     resultsIntraday.forEach(r => { previousResults[r.s] = r.signal; });
     
-    resultsIntraday = dataIntraday;
-    resultsShortTerm = dataShortTerm;
+    resultsIntraday = Array.isArray(dataIntraday) ? dataIntraday : [];
+    resultsShortTerm = Array.isArray(dataShortTerm) ? dataShortTerm : [];
+    window._marketSwitching = false; // Data arrived, clear loading flag
     
     // Complete progress bar
     clearInterval(progTimer);
@@ -944,8 +946,14 @@ function buildRowHTML(r) {
 function renderTable(data, targetId) {
   const tbody = document.getElementById(targetId);
 
-  if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;">No data yet. Click "Poll Real-Time"</td></tr>';
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    const isLoading = window._marketSwitching;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:30px; color:var(--color-text-tertiary);">
+      ${isLoading
+        ? '<div style="font-size:14px;">⏳ Loading ' + (currentMarket === 'crypto' ? 'Crypto' : 'F&O') + ' data...</div><div style="font-size:11px;margin-top:6px;">Server is fetching market data, please wait a moment</div>'
+        : 'No data. Click "Poll Real-Time"'
+      }
+    </td></tr>`;
     return;
   }
 

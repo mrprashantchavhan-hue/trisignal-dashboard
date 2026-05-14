@@ -876,28 +876,40 @@ app.post('/api/deep-analysis', express.json(), async (req, res) => {
 });
 
 async function prewarmCache() {
-  const warmups = [
-    { market: 'nifty',  interval: '15m', range: '60d' },
-    { market: 'nifty',  interval: '30m', range: '60d' },
-    { market: 'nifty',  interval: '1h',  range: '60d' },
-    { market: 'nifty',  interval: '1d',  range: '5y'  },
-    { market: 'crypto', interval: '15m', range: '60d' },
-    { market: 'crypto', interval: '1h',  range: '60d' },
-    { market: 'crypto', interval: '1d',  range: '5y'  }
+  const niftyList  = [
+    { interval: '15m', range: '60d' },
+    { interval: '30m', range: '30d' },
+    { interval: '1h',  range: '60d' },
+    { interval: '1d',  range: '5y'  },
   ];
-  for (const w of warmups) {
-    const key = `${w.market}_${w.interval}_${w.range}_null_null`;
-    if (!rawCache[key]) rawCache[key] = [];
-    console.log(`Pre-warming ${key}...`);
-    const t0 = Date.now();
-    try {
-      await fetchRealtimeData(w.market, w.interval, w.range, null, null);
-      console.log(`Pre-warm ${key} done in ${((Date.now()-t0)/1000).toFixed(1)}s (${rawCache[key].length} symbols)`);
-    } catch (err) {
-      console.error(`Pre-warm ${key} failed:`, err.message);
+  const cryptoList = [
+    { interval: '15m', range: '60d' },
+    { interval: '1h',  range: '60d' },
+    { interval: '1d',  range: '5y'  },
+  ];
+
+  // Warm one market's intervals sequentially
+  async function warmMarket(market, list) {
+    for (const w of list) {
+      const key = `${market}_${w.interval}_${w.range}_null_null`;
+      if (!rawCache[key]) rawCache[key] = [];
+      const t0 = Date.now();
+      try {
+        await fetchRealtimeData(market, w.interval, w.range, null, null);
+        console.log(`✅ Pre-warm ${key} done in ${((Date.now()-t0)/1000).toFixed(1)}s (${rawCache[key].length} symbols)`);
+      } catch (err) {
+        console.error(`❌ Pre-warm ${key} failed:`, err.message);
+      }
     }
   }
+
+  // Run BOTH markets in PARALLEL — crypto is ready in ~2s, nifty in ~8s
+  await Promise.all([
+    warmMarket('nifty',  niftyList),
+    warmMarket('crypto', cryptoList),
+  ]);
 }
+
 
 if (process.env.NODE_ENV !== 'production') {
   app.listen(3000, () => {
