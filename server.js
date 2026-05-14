@@ -1,6 +1,5 @@
 const express = require('express');
-const { default: YahooFinance } = require('yahoo-finance2');
-const yahooFinance = new YahooFinance();
+const yahooFinance = require('yahoo-finance2').default;
 const cors = require('cors');
 const path = require('path');
 const Sentiment = require('sentiment');
@@ -8,14 +7,13 @@ const Sentiment = require('sentiment');
 const app = express();
 const sentiment = new Sentiment();
 
-sentiment.registerLanguage('en', {
-  labels: {
-    'bullish': 3, 'bearish': -3, 'surge': 2, 'surges': 2, 'slump': -2, 'crash': -3,
-    'buyback': 2, 'dividend': 1, 'lawsuit': -2, 'plunge': -2, 'plunges': -2, 'rally': 2,
-    'rallies': 2, 'breakout': 2, 'outperform': 2, 'underperform': -2, 'downgrade': -2,
-    'upgrade': 2, 'soar': 2, 'soars': 2, 'tumble': -2, 'tumbles': -2, 'record': 1
-  }
-});
+// Financial domain extras passed per-analysis (registerLanguage only adds new languages, not extends English)
+const SENTIMENT_EXTRAS = {
+  'bullish': 3, 'bearish': -3, 'surge': 2, 'surges': 2, 'slump': -2, 'crash': -3,
+  'buyback': 2, 'dividend': 1, 'lawsuit': -2, 'plunge': -2, 'plunges': -2, 'rally': 2,
+  'rallies': 2, 'breakout': 2, 'outperform': 2, 'underperform': -2, 'downgrade': -2,
+  'upgrade': 2, 'soar': 2, 'soars': 2, 'tumble': -2, 'tumbles': -2, 'record': 1
+};
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -579,7 +577,8 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
 function computeResults(cacheKey, params) {
   const rawData = rawCache[cacheKey] || [];
-  const interval = cacheKey.includes('_15m_') ? '15m' : '1d';
+  const intervalMatch = cacheKey.match(/_(\d+[mhdwky]{1,2})_/);
+  const interval = intervalMatch ? intervalMatch[1] : '1d';
   return rawData.map(item => {
     const r = backtest(item.px, item.ts, item.vl, {...params, interval});
     const { g, n } = getGrade(r);
@@ -591,12 +590,14 @@ function computeResults(cacheKey, params) {
     }
 
     let chgPct = 0;
-    if (item.px && item.px.length > 25) {
+    if (item.px && item.px.length > 1) {
       const isDaily = cacheKey.includes('_1d_');
-      const lookback = isDaily ? 2 : 25; 
-      const prevPx = item.px[item.px.length - lookback];
-      const lastPx = item.px[item.px.length - 1];
-      if (prevPx > 0) chgPct = ((lastPx - prevPx) / prevPx) * 100;
+      const lookback = isDaily ? 2 : 25;
+      if (item.px.length > lookback) {
+        const prevPx = item.px[item.px.length - lookback];
+        const lastPx = item.px[item.px.length - 1];
+        if (prevPx > 0) chgPct = ((lastPx - prevPx) / prevPx) * 100;
+      }
     }
 
     return {
@@ -794,7 +795,7 @@ app.post('/api/news', express.json(), async (req, res) => {
       if (!item.title || seenTitles.has(item.title)) continue;
       seenTitles.add(item.title);
       
-      const result = sentiment.analyze(item.title);
+      const result = sentiment.analyze(item.title, { extras: SENTIMENT_EXTRAS });
       let impact = 'Neutral';
       if (result.score > 0) impact = 'Bullish';
       else if (result.score < 0) impact = 'Bearish';
@@ -934,7 +935,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log('Server is running on http://localhost:3000');
     prewarmCache();
     // Auto-fetch in the background every 10 seconds
-    setInterval(prewarmCache, 10000);
+    setInterval(prewarmCache, 10 * 60 * 1000); // every 10 minutes — avoid Yahoo Finance rate-limits
   });
 }
 
