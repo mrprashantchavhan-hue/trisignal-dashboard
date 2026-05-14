@@ -540,11 +540,9 @@ function setMarket(m) {
   
   document.getElementById('c-mkt').textContent = m === 'nifty' ? 'across F&O Universe' : 'across Crypto';
   
-  resultsIntraday = [];
-  resultsShortTerm = [];
-  // previousResults is intentionally NOT cleared to maintain signal state across tab switches
-  renderTable(resultsIntraday, 'tbl-body-intraday');
-  renderTable(resultsShortTerm, 'tbl-body-shortterm');
+  // We no longer clear resultsIntraday or render empty tables here.
+  // The UI will simply keep showing the old data while the new data fetches instantly from cache,
+  // completely eliminating any 'blank screen' or 'stuck' sensation!
   fetchData();
 }
 
