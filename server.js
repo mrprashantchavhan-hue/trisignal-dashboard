@@ -839,6 +839,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(3000, () => {
     console.log('Server is running on http://localhost:3000');
     prewarmCache();
+    // Auto-fetch in the background every 60 seconds
+    setInterval(prewarmCache, 60000);
   });
 }
 

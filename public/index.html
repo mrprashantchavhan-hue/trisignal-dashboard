@@ -478,12 +478,12 @@ function formatSignal(raw, isShort) {
 const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH'};
 let resultsIntraday = [], resultsShortTerm = [];
 let previousResults = {};
-let sortKey = 'pf', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
+let sortKey = 'netPct', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
 let schedTimer = null;
 let currentMarket = 'nifty';
 let fetchCount = 0;
 let countdownTimer = null;
-let countdownVal = 45;
+let countdownVal = 15;
 
 // ── Live clock ─────────────────────────────────────────────
 function updateClock() {
@@ -498,7 +498,7 @@ updateClock();
 // ── Auto-refresh countdown ──────────────────────────────────
 function resetCountdown() {
   clearInterval(countdownTimer);
-  countdownVal = 45;
+  countdownVal = 15;
   document.getElementById('countdown-num').textContent = countdownVal;
   countdownTimer = setInterval(() => {
     countdownVal--;
@@ -754,7 +754,17 @@ function sortAndRender(){
     r.estMoProfit = startAmount * ((r.netPct / 60) / 100);
   });
   
-  const sortFn = (a,b)=>sortAsc?(a[sortKey]||0)-(b[sortKey]||0):(b[sortKey]||0)-(a[sortKey]||0);
+  const sortFn = (a, b) => {
+    // 1. Prioritize NEW signals at the very top
+    const isANew = (a.signal === 'BUY_NEW' || a.signal === 'SELL_NEW') ? 1 : 0;
+    const isBNew = (b.signal === 'BUY_NEW' || b.signal === 'SELL_NEW') ? 1 : 0;
+    if (isANew !== isBNew) return isBNew - isANew;
+    
+    // 2. Default to selected sort key (netPct for max profit)
+    let aVal = a[sortKey] || 0;
+    let bVal = b[sortKey] || 0;
+    return sortAsc ? aVal - bVal : bVal - aVal;
+  };
   dataIntraday.sort(sortFn);
   dataShortTerm.sort(sortFn);
   
