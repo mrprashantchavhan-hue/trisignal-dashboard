@@ -1,5 +1,6 @@
 const express = require('express');
-const axios = require('axios');
+const { default: YahooFinance } = require('yahoo-finance2');
+const yahooFinance = new YahooFinance();
 const cors = require('cors');
 const path = require('path');
 const Sentiment = require('sentiment');
@@ -40,9 +41,9 @@ const STOCKS = [
   {s:'WIPRO', n:'Wipro', sec:'IT'},
   {s:'HCLTECH', n:'HCL Technologies', sec:'IT'},
   {s:'TECHM', n:'Tech Mahindra', sec:'IT'},
-  {s:'LTIM', n:'LTIMindtree', sec:'IT'},
+  {s:'LTIM', ys:'LTIM.NS', n:'LTIMindtree', sec:'IT'},
   {s:'MARUTI', n:'Maruti Suzuki', sec:'Auto'},
-  {s:'TATAMOTORS', n:'Tata Motors', sec:'Auto'},
+  {s:'TATAMOTORS', ys:'TMCV.NS', n:'Tata Motors', sec:'Auto'},
   {s:'M&M', n:'Mahindra & Mahindra', sec:'Auto'},
   {s:'HEROMOTOCO', n:'Hero MotoCorp', sec:'Auto'},
   {s:'EICHERMOT', n:'Eicher Motors', sec:'Auto'},
@@ -72,7 +73,7 @@ const STOCKS = [
   {s:'HDFCLIFE', n:'HDFC Life Insurance', sec:'Insurance'},
   
   // Expanded F&O Coverage (High Volume / Liquidity)
-  {s:'ZOMATO', ys:'ZOMATO.NS', n:'Zomato', sec:'Consumer'},
+  {s:'ZOMATO', ys:'ETERNAL.NS', n:'Zomato (Eternal)', sec:'Consumer'},
   {s:'HAL', n:'Hindustan Aeronautics', sec:'Defense'},
   {s:'BEL', n:'Bharat Electronics', sec:'Defense'},
   {s:'BDL', n:'Bharat Dynamics', sec:'Defense'},
@@ -501,29 +502,7 @@ const rawCache = {};
 const isFetching = {};
 const lastFetchTime = {}; // Bug 5 Fix: Prevent spamming Yahoo
 
-async function fetchWithRetry(url, retries = 2) {
-  const endpoints = [
-    url.replace('query1.finance.yahoo.com', 'query1.finance.yahoo.com'),
-    url.replace('query1.finance.yahoo.com', 'query2.finance.yahoo.com')
-  ];
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const endpoint = endpoints[Math.min(attempt, endpoints.length - 1)];
-    try {
-      const res = await axios.get(endpoint, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9'
-        },
-        timeout: 3000
-      });
-      return res;
-    } catch (err) {
-      if (attempt === retries) throw err;
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-    }
-  }
-}
+// Removed deprecated fetchWithRetry function
 
 async function fetchRealtimeData(market, interval, range, period1, period2) {
   const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
@@ -541,50 +520,52 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
   try {
     const newRawData = [];
     const list = market === 'crypto' ? CRYPTO : STOCKS;
-    const chunkSize = 30; // Reduced chunk size for more reliability
-  for (let i = 0; i < list.length; i += chunkSize) {
-    const chunk = list.slice(i, i + chunkSize);
-    const promises = chunk.map(async (st) => {
-      try {
-        let symbol = market === 'crypto' ? st.s : (st.ys ? st.ys : `${st.s}.NS`);
-        const p1Str = period1 ? `&period1=${period1}` : '';
-        const p2Str = period2 ? `&period2=${period2}` : '';
-        const rStr = (!period1 || !period2) ? `&range=${range}` : '';
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}${rStr}${p1Str}${p2Str}`;
-        
-        const res = await fetchWithRetry(url, 2);
-        const chart = res.data.chart;
-        if (!chart || !chart.result || !chart.result[0].indicators.quote[0].close) throw new Error('No data');
-        
-        const resultData = chart.result[0];
-        const closePrices = resultData.indicators.quote[0].close;
-        const volumeData = resultData.indicators.quote[0].volume || [];
-        const rawTimestamps = resultData.timestamp || [];
-        const px = [], ts = [], vl = [];
-        
-        for (let j = 0; j < closePrices.length; j++) {
-          if (closePrices[j] !== null) {
-            px.push(closePrices[j]);
-            ts.push(rawTimestamps[j] * 1000);
-            vl.push(volumeData[j] || 0);
+    const chunkSize = 5; // Reduced chunk size for yahoo-finance2 stability
+    for (let i = 0; i < list.length; i += chunkSize) {
+      const chunk = list.slice(i, i + chunkSize);
+      const promises = chunk.map(async (st) => {
+        try {
+          let symbol = market === 'crypto' ? st.s : (st.ys ? st.ys : `${st.s}.NS`);
+          
+          let queryOptions = { interval: interval };
+          if (period1 && period2) {
+            queryOptions.period1 = new Date(period1 * 1000);
+            queryOptions.period2 = new Date(period2 * 1000);
+          } else {
+            // Convert range to period1
+            const d = new Date();
+            if (range === '60d') d.setDate(d.getDate() - 60);
+            else if (range === '5y') d.setFullYear(d.getFullYear() - 5);
+            else d.setDate(d.getDate() - 20); // fallback '20d'
+            queryOptions.period1 = d;
           }
-        }
-        
-        let priceStr = px.length > 0 ? px[px.length - 1].toFixed(market === 'crypto' && px[px.length - 1] < 10 ? 4 : 2) : 0;
-        
-        return { st, px, ts, vl, priceStr };
-      } catch (err) {
-        console.error(`Failed ${st.s} (${interval}):`, err.message);
-        const old = rawCache[cacheKey] ? rawCache[cacheKey].find(x => x.st.s === st.s) : null;
-        if (old) return old;
-        return { st, px: [], ts: [], vl: [], priceStr: 0 };
-      }
-    });
 
-    const results = await Promise.all(promises);
-    newRawData.push(...results);
-    await new Promise(r => setTimeout(r, 100)); // 100ms breather between chunks
-  }
+          const chart = await yahooFinance.chart(symbol, queryOptions);
+          if (!chart || !chart.quotes || chart.quotes.length === 0) throw new Error('No data');
+          
+          const px = [], ts = [], vl = [];
+          for (const q of chart.quotes) {
+            if (q.close !== null && q.close !== undefined) {
+              px.push(q.close);
+              ts.push(q.date.getTime());
+              vl.push(q.volume || 0);
+            }
+          }
+          
+          let priceStr = px.length > 0 ? px[px.length - 1].toFixed(market === 'crypto' && px[px.length - 1] < 10 ? 4 : 2) : 0;
+          return { st, px, ts, vl, priceStr };
+        } catch (err) {
+          console.error(`Failed ${st.s} (${interval}):`, err.message);
+          const old = rawCache[cacheKey] ? rawCache[cacheKey].find(x => x.st.s === st.s) : null;
+          if (old) return old;
+          return { st, px: [], ts: [], vl: [], priceStr: 0 };
+        }
+      });
+
+      const results = await Promise.all(promises);
+      newRawData.push(...results);
+      await new Promise(r => setTimeout(r, 300)); // 300ms breather
+    }
   
     rawCache[cacheKey] = newRawData;
     lastFetchTime[cacheKey] = Date.now(); // Update last fetch time
@@ -792,9 +773,9 @@ app.post('/api/news', express.json(), async (req, res) => {
     let allNews = [];
     const promises = tickers.map(async (t) => {
       try {
-        const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${t}&newsCount=2`;
-        const response = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const newsArr = response.data.news || [];
+        const symbol = t.includes('.NS') ? t : `${t}.NS`;
+        const response = await yahooFinance.search(symbol, { newsCount: 2 });
+        const newsArr = response.news || [];
         return newsArr.map(n => ({ ...n, relatedTicker: t }));
       } catch (err) {
         console.error(`Failed news for ${t}:`, err.message);
@@ -835,9 +816,29 @@ app.post('/api/news', express.json(), async (req, res) => {
   }
 });
 
+async function prewarmCache() {
+  const warmups = [
+    { market: 'nifty', interval: '15m', range: '60d' },
+    { market: 'nifty', interval: '1d',  range: '5y'  }
+  ];
+  for (const w of warmups) {
+    const key = `${w.market}_${w.interval}_${w.range}_null_null`;
+    if (!rawCache[key]) rawCache[key] = [];
+    console.log(`Pre-warming ${key}...`);
+    const t0 = Date.now();
+    try {
+      await fetchRealtimeData(w.market, w.interval, w.range, null, null);
+      console.log(`Pre-warm ${key} done in ${((Date.now()-t0)/1000).toFixed(1)}s (${rawCache[key].length} symbols)`);
+    } catch (err) {
+      console.error(`Pre-warm ${key} failed:`, err.message);
+    }
+  }
+}
+
 if (process.env.NODE_ENV !== 'production') {
   app.listen(3000, () => {
     console.log('Server is running on http://localhost:3000');
+    prewarmCache();
   });
 }
 

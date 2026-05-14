@@ -1114,15 +1114,10 @@ function openTradesModal(symbol) {
         holdingTime = t.bars + ' bars';
       }
 
-      const pnlStyle = t.pnl > 0
-        ? 'background:rgba(63,185,80,0.15);color:#3fb950;padding:2px 6px;border-radius:4px;font-weight:bold;'
-        : 'background:rgba(248,81,73,0.15);color:#f85149;padding:2px 6px;border-radius:4px;font-weight:bold;';
-
       const tradeTypeLabel = t.type === 'SHORT'
         ? '<span style="color:#BF40BF;font-size:9px;display:block;">SHORT</span>'
         : '<span style="color:#3FB950;font-size:9px;display:block;">LONG</span>';
 
-      const { grossProfit, tax, charges, netProfit } = calcCosts(t.pnlPct);
       const netPnlStyle = netProfit > 0 ? 'color:#3FB950;font-weight:500;' : 'color:#F85149;font-weight:500;';
       const marginBadge = (isIntraday && !isCrypto)
         ? `<span style="font-size:10px;color:#D29922;">(${stockMargin}x Margin)</span>` : '';
