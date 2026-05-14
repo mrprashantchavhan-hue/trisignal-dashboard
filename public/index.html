@@ -483,7 +483,7 @@ let schedTimer = null;
 let currentMarket = 'nifty';
 let fetchCount = 0;
 let countdownTimer = null;
-let countdownVal = 15;
+let countdownVal = 10;
 
 // ── Live clock ─────────────────────────────────────────────
 function updateClock() {
@@ -498,7 +498,7 @@ updateClock();
 // ── Auto-refresh countdown ──────────────────────────────────
 function resetCountdown() {
   clearInterval(countdownTimer);
-  countdownVal = 15;
+  countdownVal = 10;
   document.getElementById('countdown-num').textContent = countdownVal;
   countdownTimer = setInterval(() => {
     countdownVal--;

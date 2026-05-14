@@ -508,9 +508,9 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
   const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
   if (isFetching[cacheKey]) return;
 
-  // Bug 5 Fix: Don't fetch if data is less than 60 seconds old
+  // Bug 5 Fix: Don't fetch if data is less than 10 seconds old
   const now = Date.now();
-  if (lastFetchTime[cacheKey] && (now - lastFetchTime[cacheKey] < 60000)) {
+  if (lastFetchTime[cacheKey] && (now - lastFetchTime[cacheKey] < 10000)) {
     return;
   }
 
@@ -520,7 +520,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
   try {
     const newRawData = [];
     const list = market === 'crypto' ? CRYPTO : STOCKS;
-    const chunkSize = 5; // Reduced chunk size for yahoo-finance2 stability
+    const chunkSize = 20; // Increased chunk size for faster fetching
     for (let i = 0; i < list.length; i += chunkSize) {
       const chunk = list.slice(i, i + chunkSize);
       const promises = chunk.map(async (st) => {
@@ -564,7 +564,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
 
       const results = await Promise.all(promises);
       newRawData.push(...results);
-      await new Promise(r => setTimeout(r, 300)); // 300ms breather
+      await new Promise(r => setTimeout(r, 100)); // 100ms breather
     }
   
     rawCache[cacheKey] = newRawData;
@@ -841,8 +841,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(3000, () => {
     console.log('Server is running on http://localhost:3000');
     prewarmCache();
-    // Auto-fetch in the background every 60 seconds
-    setInterval(prewarmCache, 60000);
+    // Auto-fetch in the background every 10 seconds
+    setInterval(prewarmCache, 10000);
   });
 }
 
