@@ -238,8 +238,17 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
 <div style="display:flex; flex-direction:column; gap:20px;">
   <!-- INTRADAY PANEL -->
   <div>
-    <div class="slbl" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-      <div>⚡ Intraday Opportunities (15m) <span style="font-weight:400">(Click any row to view trade details)</span></div>
+    <div class="slbl" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div id="intraday-title">⚡ Intraday Screener <span style="font-weight:400">(Click any row for trades · 🔬 for Deep Analysis)</span></div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span style="font-size:11px; color:var(--color-text-tertiary); margin-right:4px;">Timeframe:</span>
+        <button id="tf-5m"  class="fpill" onclick="setTimeframe('5m')">5m</button>
+        <button id="tf-15m" class="fpill on" onclick="setTimeframe('15m')">15m</button>
+        <button id="tf-30m" class="fpill" onclick="setTimeframe('30m')">30m</button>
+        <button id="tf-1h"  class="fpill" onclick="setTimeframe('1h')">1h</button>
+        <button id="tf-1d"  class="fpill" onclick="setTimeframe('1d')">1D</button>
+        <button id="tf-1wk" class="fpill" onclick="setTimeframe('1wk')">1Wk</button>
+      </div>
     </div>
     <div class="tbl-wrap">
     <table id="tbl-intraday">
@@ -479,6 +488,15 @@ const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiH
 let resultsIntraday = [], resultsShortTerm = [];
 let previousResults = {};
 let sortKey = 'netPct', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
+let currentInterval = '15m';
+const TF_CONFIG = {
+  '5m':  { range: '7d',  label: '5m Scalp' },
+  '15m': { range: '60d', label: '15m Intraday' },
+  '30m': { range: '60d', label: '30m Intraday' },
+  '1h':  { range: '60d', label: '1H Swing Entry' },
+  '1d':  { range: '5y',  label: 'Daily' },
+  '1wk': { range: '5y',  label: 'Weekly' },
+};
 let schedTimer = null;
 let currentMarket = 'nifty';
 let fetchCount = 0;
@@ -539,12 +557,23 @@ function setMarket(m) {
   document.getElementById('btn-crypto').style.color = m === 'crypto' ? '#fff' : '#8B949E';
   
   document.getElementById('c-mkt').textContent = m === 'nifty' ? 'across F&O Universe' : 'across Crypto';
-  
   // We no longer clear resultsIntraday or render empty tables here.
   // The UI will simply keep showing the old data while the new data fetches instantly from cache,
   // completely eliminating any 'blank screen' or 'stuck' sensation!
   fetchData();
 }
+
+function setTimeframe(tf) {
+  currentInterval = tf;
+  // Update pill buttons
+  ['5m','15m','30m','1h','1d','1wk'].forEach(t => {
+    const el = document.getElementById(`tf-${t}`);
+    if (el) el.classList.toggle('on', t === tf);
+  });
+  fetchData();
+}
+
+
 
 async function fetchData() {
   const btn = document.getElementById('run-btn');
@@ -575,7 +604,7 @@ async function fetchData() {
     const p1 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params: P, market: currentMarket, interval: '15m', range: '60d', period1, period2 })
+      body: JSON.stringify({ params: P, market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2 })
     }).then(r => r.json());
     
     const p2 = fetch('/api/screener', {
@@ -898,7 +927,7 @@ function buildRowHTML(r) {
 
   return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
     <td style="color:var(--color-text-tertiary)">${r.rank}</td>
-    <td style="font-weight:500">${r.s}${sentimentHTML}</td>
+    <td style="font-weight:500; white-space:nowrap;">${r.s}${sentimentHTML} <span onclick="event.stopPropagation(); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}','_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:10px; background:rgba(88,166,255,0.12); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;">🔬</span></td>
     <td><span class="sbadge">${r.sec}</span></td>
     <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
     <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>

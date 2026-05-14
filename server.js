@@ -816,11 +816,73 @@ app.post('/api/news', express.json(), async (req, res) => {
   }
 });
 
+// ── Deep Per-Stock Analysis: all 6 timeframes ──────────────────────────────
+app.post('/api/deep-analysis', express.json(), async (req, res) => {
+  try {
+    const { symbol, market } = req.body;
+    const params = req.body.params || { emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH' };
+    const yahooSymbol = market === 'crypto' ? symbol : (symbol.includes('.') ? symbol : `${symbol}.NS`);
+
+    const timeframes = [
+      { interval: '5m',  days: 7,  label: '5 Min Scalp',         cat: 'intraday' },
+      { interval: '15m', days: 60, label: '15 Min Intraday',      cat: 'intraday' },
+      { interval: '30m', days: 60, label: '30 Min Intraday',      cat: 'intraday' },
+      { interval: '1h',  days: 60, label: '1 Hour Swing Entry',   cat: 'intraday' },
+      { interval: '1d',  years: 5, label: 'Daily Short-term',     cat: 'swing'    },
+      { interval: '1wk', years: 5, label: 'Weekly Long-term',     cat: 'swing'    },
+    ];
+
+    const results = await Promise.all(timeframes.map(async (tf) => {
+      try {
+        const d = new Date();
+        if (tf.days)  d.setDate(d.getDate() - tf.days);
+        if (tf.years) d.setFullYear(d.getFullYear() - tf.years);
+
+        const chart = await yahooFinance.chart(yahooSymbol, { interval: tf.interval, period1: d });
+        if (!chart || !chart.quotes || chart.quotes.length < 10) throw new Error('Insufficient data');
+
+        const px = [], ts = [], vl = [];
+        for (const q of chart.quotes) {
+          if (q.close !== null && q.close !== undefined) {
+            px.push(q.close); ts.push(q.date.getTime()); vl.push(q.volume || 0);
+          }
+        }
+
+        const r = backtest(px, ts, vl, { ...params, interval: tf.interval });
+        const { g } = getGrade(r);
+        const score = (g === 'D') ? -1 : r.pf * (r.winRate / 100) * Math.min(Math.log(r.trades + 1), 3);
+
+        return { interval: tf.interval, label: tf.label, cat: tf.cat, bars: px.length,
+          trades: r.trades, winRate: r.winRate, pf: r.pf, netPct: r.netPct, maxDD: r.maxDD,
+          grade: g, signal: r.signal, signalDetails: r.signalDetails, sigE: r.sigE, sigTP: r.sigTP, sigSL: r.sigSL, score };
+      } catch (err) {
+        return { interval: tf.interval, label: tf.label, cat: tf.cat,
+          bars: 0, trades: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0,
+          grade: 'X', signal: 'FLAT', signalDetails: '', score: -99, error: err.message };
+      }
+    }));
+
+    results.sort((a, b) => b.score - a.score);
+    const validResults = results.filter(r => r.grade !== 'D' && r.grade !== 'X');
+    const bestTimeframe = validResults[0]?.interval || results[0]?.interval;
+    const intradayBest = validResults.find(r => r.cat === 'intraday')?.interval;
+    const swingBest    = validResults.find(r => r.cat === 'swing')?.interval;
+
+    res.json({ symbol, market, results, bestTimeframe, intradayBest, swingBest });
+  } catch (err) {
+    console.error('Deep analysis error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 async function prewarmCache() {
   const warmups = [
-    { market: 'nifty', interval: '15m', range: '60d' },
-    { market: 'nifty', interval: '1d',  range: '5y'  },
+    { market: 'nifty',  interval: '15m', range: '60d' },
+    { market: 'nifty',  interval: '30m', range: '60d' },
+    { market: 'nifty',  interval: '1h',  range: '60d' },
+    { market: 'nifty',  interval: '1d',  range: '5y'  },
     { market: 'crypto', interval: '15m', range: '60d' },
+    { market: 'crypto', interval: '1h',  range: '60d' },
     { market: 'crypto', interval: '1d',  range: '5y'  }
   ];
   for (const w of warmups) {
