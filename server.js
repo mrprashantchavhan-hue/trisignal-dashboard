@@ -534,9 +534,10 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
           } else {
             // Convert range to period1
             const d = new Date();
-            if (range === '60d') d.setDate(d.getDate() - 60);
+            if (range === '60d') d.setDate(d.getDate() - 58); // Yahoo strict: must be < 60 days
+            else if (range === '30d') d.setDate(d.getDate() - 28);
             else if (range === '5y') d.setFullYear(d.getFullYear() - 5);
-            else d.setDate(d.getDate() - 20); // fallback '20d'
+            else d.setDate(d.getDate() - 18); // fallback '20d'
             queryOptions.period1 = d;
           }
 
@@ -834,17 +835,33 @@ app.post('/api/deep-analysis', express.json(), async (req, res) => {
 
     const results = await Promise.all(timeframes.map(async (tf) => {
       try {
-        const d = new Date();
-        if (tf.days)  d.setDate(d.getDate() - tf.days);
-        if (tf.years) d.setFullYear(d.getFullYear() - tf.years);
+        let px = [], ts = [], vl = [];
 
-        const chart = await yahooFinance.chart(yahooSymbol, { interval: tf.interval, period1: d });
-        if (!chart || !chart.quotes || chart.quotes.length < 10) throw new Error('Insufficient data');
+        // --- FAST PATH: use existing rawCache if available for this TF ---
+        const tfRange = tf.days ? (tf.days <= 7 ? '7d' : tf.days <= 30 ? '30d' : '60d') : '5y';
+        const cacheKey = `${market}_${tf.interval}_${tfRange}_null_null`;
+        const cached = rawCache[cacheKey];
+        const cachedSymbol = cached ? cached.find(x => x.st.s === symbol) : null;
 
-        const px = [], ts = [], vl = [];
-        for (const q of chart.quotes) {
-          if (q.close !== null && q.close !== undefined) {
-            px.push(q.close); ts.push(q.date.getTime()); vl.push(q.volume || 0);
+        if (cachedSymbol && cachedSymbol.px.length >= 10) {
+          // Cache hit — instant, no Yahoo request needed
+          px = cachedSymbol.px;
+          ts = cachedSymbol.ts;
+          vl = cachedSymbol.vl;
+          console.log(`⚡ Deep cache hit: ${symbol} ${tf.interval}`);
+        } else {
+          // Cache miss — fetch from Yahoo Finance
+          const d = new Date();
+          if (tf.days)  d.setDate(d.getDate() - tf.days);
+          if (tf.years) d.setFullYear(d.getFullYear() - tf.years);
+
+          const chart = await yahooFinance.chart(yahooSymbol, { interval: tf.interval, period1: d });
+          if (!chart || !chart.quotes || chart.quotes.length < 10) throw new Error('Insufficient data');
+
+          for (const q of chart.quotes) {
+            if (q.close !== null && q.close !== undefined) {
+              px.push(q.close); ts.push(q.date.getTime()); vl.push(q.volume || 0);
+            }
           }
         }
 
@@ -861,6 +878,7 @@ app.post('/api/deep-analysis', express.json(), async (req, res) => {
           grade: 'X', signal: 'FLAT', signalDetails: '', score: -99, error: err.message };
       }
     }));
+
 
     results.sort((a, b) => b.score - a.score);
     const validResults = results.filter(r => r.grade !== 'D' && r.grade !== 'X');
