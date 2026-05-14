@@ -1,5 +1,6 @@
 const express = require('express');
-const yahooFinance = require('yahoo-finance2').default;
+const { default: YahooFinance } = require('yahoo-finance2');
+const yahooFinance = new YahooFinance();
 const cors = require('cors');
 const path = require('path');
 const Sentiment = require('sentiment');
