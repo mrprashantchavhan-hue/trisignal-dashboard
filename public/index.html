@@ -439,6 +439,73 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
 </dialog>
 
 <script>
+async function autoOptimize() {
+  const btn = document.getElementById('btn-optimize');
+  const goal = document.getElementById('opt-goal').value;
+  btn.textContent = 'Optimizing...';
+  btn.style.opacity = '0.7';
+  
+  // Parse date range if set
+  const dateStr = document.getElementById('date-range').value;
+  let period1 = null, period2 = null;
+  if (dateStr && dateStr.includes(' to ')) {
+    const [d1, d2] = dateStr.split(' to ');
+    period1 = Math.floor(new Date(d1).getTime());
+    period2 = Math.floor(new Date(d2).getTime() + 86400000); // end of day
+  }
+  
+  try {
+    const res = await fetch('/api/optimize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2, goal })
+    });
+    const data = await res.json();
+    const optimalP = data.params;
+    const ai = data.aiProfile;
+    
+    if (data.error) throw new Error(data.error);
+    
+    Object.assign(P, optimalP);
+    
+    // Update sliders UI
+    document.querySelector('input[oninput*="emaF"]').value = P.emaF; document.getElementById('v-ef').textContent = P.emaF;
+    document.querySelector('input[oninput*="emaS"]').value = P.emaS; document.getElementById('v-es').textContent = P.emaS;
+    document.querySelector('input[oninput*="macdF"]').value = P.macdF; document.getElementById('v-mf').textContent = P.macdF;
+    document.querySelector('input[oninput*="macdS"]').value = P.macdS; document.getElementById('v-msd').textContent = P.macdS;
+    document.querySelector('input[oninput*="rsiL"]').value = P.rsiL; document.getElementById('v-rl').textContent = P.rsiL;
+    document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow; document.getElementById('v-rlw').textContent = P.rsiLow;
+    document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh; document.getElementById('v-rh').textContent = P.rsiHigh;
+    document.querySelector('input[oninput*="atrM"]').value = P.atrM; document.getElementById('v-am').textContent = P.atrM.toFixed(1);
+    document.querySelector('input[oninput*="rrR"]').value = P.rrR; document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
+    document.querySelector('input[oninput*="timeStop"]').value = P.timeStop; document.getElementById('v-ts').textContent = P.timeStop;
+    document.querySelector('input[oninput*="minS"]').value = P.minS; document.getElementById('v-ms-c').textContent = P.minS + '/5';
+    document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
+    document.querySelector('input[oninput*="volM"]').value = P.volM; document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
+    
+    // Show AI Profile
+    if (ai) {
+      document.getElementById('ai-profile').style.display = 'block';
+      document.getElementById('ai-name').textContent = ai.name;
+      document.getElementById('ai-desc').textContent = ai.desc;
+      document.getElementById('ai-wr').textContent = ai.expectedWr;
+      document.getElementById('ai-pf').textContent = ai.expectedPf;
+      if (ai.portfolio) {
+        document.getElementById('portfolio-recommendation').innerHTML = `💡 <strong>Recommended Combo:</strong> Trade ${ai.portfolio.symbols} together! Combined return: <strong>${ai.portfolio.totalProfit}%</strong> in this period.`;
+      }
+    }
+    
+    btn.textContent = '🧠 AI Optimized!';
+    setTimeout(() => { btn.textContent = '🧠 AI Optimize'; btn.style.opacity = '1'; }, 2000);
+    
+    fetchData(); // Fetch Data with new parameters
+  } catch(e) {
+    btn.textContent = 'Error';
+    console.error(e);
+    setTimeout(() => { btn.textContent = '🧠 AI Optimize'; btn.style.opacity = '1'; }, 2000);
+  }
+}
+
 function applyPreset(type) {
   if (type === 'scalping') {
     P.emaF = 5; P.emaS = 13; P.macdF = 9; P.macdS = 21; P.rsiL = 14; P.rsiLow = 30; P.rsiHigh = 70; P.atrM = 1.5; P.rrR = 1.5; P.timeStop = 10;
