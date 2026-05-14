@@ -929,7 +929,7 @@ function buildRowHTML(r) {
 
   return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
     <td style="color:var(--color-text-tertiary)">${r.rank}</td>
-    <td style="font-weight:500; white-space:nowrap;">${r.s}${sentimentHTML} <span onclick="event.stopPropagation(); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}','_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:10px; background:rgba(88,166,255,0.12); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;">🔬</span></td>
+    <td style="font-weight:500; white-space:nowrap;">${r.s}${sentimentHTML} <span onclick="event.stopPropagation(); const amt=(document.getElementById('start-amount')?.value||10000); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}&amount='+amt,'_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:10px; background:rgba(88,166,255,0.12); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;">🔬</span></td>
     <td><span class="sbadge">${r.sec}</span></td>
     <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
     <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>

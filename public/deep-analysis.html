@@ -117,7 +117,15 @@
       <div class="stock-symbol" id="page-symbol">Loading...</div>
       <div class="stock-meta" id="page-meta">Analyzing all timeframes...</div>
     </div>
-    <div class="price-tag" id="page-price">—</div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div style="font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px;">Start Amount</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--text2); font-size:14px;">₹</span>
+        <input id="amount-input" type="number" value="10000" min="100" step="1000"
+          style="width:110px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:15px; font-family:'JetBrains Mono',monospace; padding:6px 10px; text-align:right;"
+          onchange="START_AMOUNT=parseFloat(this.value)||10000; renderResults(window._lastData)">
+      </div>
+    </div>
   </div>
 
   <div id="content">
@@ -134,9 +142,17 @@
 const params = new URLSearchParams(location.search);
 const SYMBOL = params.get('symbol') || '';
 const MARKET = params.get('market') || 'nifty';
+let START_AMOUNT = parseFloat(params.get('amount') || '10000');
 
 document.getElementById('page-symbol').textContent = SYMBOL || 'Unknown';
 document.title = `${SYMBOL} Deep Analysis — TriSignal Pro`;
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('amount-input');
+  if (inp) inp.value = START_AMOUNT;
+});
+
+// How many months of data each timeframe covers
+const TF_MONTHS = { '5m': 0.25, '15m': 2, '30m': 1, '1h': 2, '1d': 60, '1wk': 60 };
 
 const GRADE_COLOR = { A: '#3fb950', B: '#58a6ff', C: '#d29922', D: '#f85149', X: '#484f58' };
 const SIG_ICONS = {
@@ -146,7 +162,12 @@ const SIG_ICONS = {
 
 function fmt(n, dec = 2) { return Number(n).toFixed(dec); }
 function fmtCurrency(n) {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+function calcProfit(netPct, interval) {
+  const total   = START_AMOUNT * (netPct / 100);
+  const monthly = total / (TF_MONTHS[interval] || 1);
+  return { total, monthly };
 }
 
 async function loadAnalysis() {
@@ -167,6 +188,7 @@ async function loadAnalysis() {
 }
 
 function renderResults(data) {
+  window._lastData = data; // store so amount input can re-render
   const { symbol, results, bestTimeframe, intradayBest, swingBest } = data;
   const best = results.find(r => r.interval === bestTimeframe);
   const intradayR = results.find(r => r.interval === intradayBest);
@@ -187,6 +209,7 @@ function renderResults(data) {
 
   // Intraday recommendation
   if (intradayR) {
+    const ip = calcProfit(intradayR.netPct, intradayR.interval);
     html += `
     <div class="rec-card">
       <div class="rec-label">📈 Best Intraday Timeframe</div>
@@ -196,7 +219,8 @@ function renderResults(data) {
       <div class="rec-split">
         <div class="rec-stat"><div class="rec-stat-val" style="color:#3fb950">${intradayR.winRate}%</div><div class="rec-stat-lbl">Win Rate</div></div>
         <div class="rec-stat"><div class="rec-stat-val" style="color:#58a6ff">${intradayR.pf}x</div><div class="rec-stat-lbl">Prof. Factor</div></div>
-        <div class="rec-stat"><div class="rec-stat-val" style="color:#d29922">${intradayR.netPct >= 0 ? '+' : ''}${intradayR.netPct}%</div><div class="rec-stat-lbl">Return</div></div>
+        <div class="rec-stat"><div class="rec-stat-val" style="color:${ip.total>=0?'#3fb950':'#f85149'}">${ip.total>=0?'+':''}${fmtCurrency(ip.total)}</div><div class="rec-stat-lbl">Total Profit</div></div>
+        <div class="rec-stat"><div class="rec-stat-val" style="color:${ip.monthly>=0?'#d29922':'#f85149'}">${ip.monthly>=0?'+':''}${fmtCurrency(ip.monthly)}</div><div class="rec-stat-lbl">Est./Month</div></div>
       </div>
     </div>`;
   } else {
@@ -205,6 +229,7 @@ function renderResults(data) {
 
   // Swing recommendation
   if (swingR) {
+    const sp = calcProfit(swingR.netPct, swingR.interval);
     html += `
     <div class="rec-card best">
       <div class="crown">👑</div>
@@ -215,7 +240,8 @@ function renderResults(data) {
       <div class="rec-split">
         <div class="rec-stat"><div class="rec-stat-val" style="color:#3fb950">${swingR.winRate}%</div><div class="rec-stat-lbl">Win Rate</div></div>
         <div class="rec-stat"><div class="rec-stat-val" style="color:#58a6ff">${swingR.pf}x</div><div class="rec-stat-lbl">Prof. Factor</div></div>
-        <div class="rec-stat"><div class="rec-stat-val" style="color:#d29922">${swingR.netPct >= 0 ? '+' : ''}${swingR.netPct}%</div><div class="rec-stat-lbl">Return</div></div>
+        <div class="rec-stat"><div class="rec-stat-val" style="color:${sp.total>=0?'#3fb950':'#f85149'}">${sp.total>=0?'+':''}${fmtCurrency(sp.total)}</div><div class="rec-stat-lbl">Total Profit</div></div>
+        <div class="rec-stat"><div class="rec-stat-val" style="color:${sp.monthly>=0?'#d29922':'#f85149'}">${sp.monthly>=0?'+':''}${fmtCurrency(sp.monthly)}</div><div class="rec-stat-lbl">Est./Month</div></div>
       </div>
     </div>`;
   } else {
@@ -266,18 +292,25 @@ function renderResults(data) {
         </div>
         <div class="grade-badge grade-${r.grade}">${r.grade}</div>
       </div>
-      ${r.grade === 'X' ? `<div style="color:#484f58; font-size:12px; padding:8px 0;">⚠️ ${r.error || 'No data available'}</div>` : `
-      <div class="tf-stats">
-        <div class="tf-stat"><div class="tf-stat-val" style="color:${wrColor}">${fmt(r.winRate, 1)}%</div><div class="tf-stat-lbl">Win Rate</div></div>
-        <div class="tf-stat"><div class="tf-stat-val" style="color:${pfColor}">${fmt(r.pf, 2)}</div><div class="tf-stat-lbl">Prof. Factor</div></div>
-        <div class="tf-stat"><div class="tf-stat-val" style="color:${netColor}">${r.netPct >= 0 ? '+' : ''}${fmt(r.netPct, 1)}%</div><div class="tf-stat-lbl">Return</div></div>
-        <div class="tf-stat"><div class="tf-stat-val" style="color:${r.maxDD > 20 ? '#f85149' : '#8b949e'}">${fmt(r.maxDD, 1)}%</div><div class="tf-stat-lbl">Max DD</div></div>
+      ${r.grade === 'X' ? `<div style="color:#484f58; font-size:12px; padding:8px 0;">⚠️ ${r.error || 'No data available'}</div>` : (() => {
+        const p = calcProfit(r.netPct, r.interval);
+        const profitColor = p.total >= 0 ? '#3fb950' : '#f85149';
+        const moColor = p.monthly >= 0 ? '#d29922' : '#f85149';
+        return `
+      <div class="tf-stats" style="grid-template-columns: repeat(3,1fr);">
+        <div class="tf-stat"><div class="tf-stat-val" style="color:${wrColor}">${fmt(r.winRate,1)}%</div><div class="tf-stat-lbl">Win Rate</div></div>
+        <div class="tf-stat"><div class="tf-stat-val" style="color:${pfColor}">${fmt(r.pf,2)}</div><div class="tf-stat-lbl">Prof. Factor</div></div>
+        <div class="tf-stat"><div class="tf-stat-val" style="color:${r.maxDD>20?'#f85149':'#8b949e'}">${fmt(r.maxDD,1)}%</div><div class="tf-stat-lbl">Max DD</div></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px;">
+        <div class="tf-stat"><div class="tf-stat-val" style="color:${profitColor}; font-size:11px;">${p.total>=0?'+':''}${fmtCurrency(p.total)}</div><div class="tf-stat-lbl">Total Profit</div></div>
+        <div class="tf-stat"><div class="tf-stat-val" style="color:${moColor}; font-size:11px;">${p.monthly>=0?'+':''}${fmtCurrency(p.monthly)}</div><div class="tf-stat-lbl">Est./Month</div></div>
       </div>
       <div class="tf-signal ${sigCls}">
         <span>${sigIcon}</span>
-        ${r.signalDetails ? `<span style="font-size:10px; color:#8b949e">${r.signalDetails.substring(0, 60)}</span>` : ''}
-      </div>
-      `}
+        ${r.signalDetails ? `<span style="font-size:10px; color:#8b949e">${r.signalDetails.substring(0,60)}</span>` : ''}
+      </div>`;
+      })()}
     </div>`;
   }
 
