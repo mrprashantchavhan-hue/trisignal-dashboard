@@ -86,9 +86,12 @@ tr:hover td { background: var(--color-background-secondary); }
 .tr-row { cursor: pointer; transition: background 0.1s; }
 .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); }
 .bA { background: rgba(63,185,80,0.15); color: #3fb950; border-color: rgba(63,185,80,0.4); box-shadow: 0 0 8px rgba(63,185,80,0.3); } 
-.bB { background: rgba(210,153,34,0.15); color: #D29922; border-color: rgba(210,153,34,0.4); }
-.bC { background: rgba(139,148,158,0.15); color: #8b949e; border-color: rgba(139,148,158,0.4); } 
+.bB { background: rgba(45,212,191,0.15); color: #2dd4bf; border-color: rgba(45,212,191,0.4); }
+.bC { background: rgba(251,191,36,0.15); color: #fbbf24; border-color: rgba(251,191,36,0.4); } 
 .bD { background: rgba(248,81,73,0.15); color: #F85149; border-color: rgba(248,81,73,0.4); }
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+}
 .win { color: #3FB950; font-weight: 500; } .loss { color: #F85149; font-weight: 500; }
 .sbadge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; background: var(--color-background-secondary); color: var(--color-text-tertiary); border: 0.5px solid var(--color-border-tertiary); }
 .run-btn { font-size: 12px; padding: 5px 12px; border-radius: 6px; border: 0.5px solid var(--color-border-secondary); background: #238636; color: #ffffff; cursor: pointer; white-space: nowrap; font-weight: 500; transition: all 0.15s; }
@@ -189,13 +192,13 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
   </div>
   <div class="filter-group">
     <label>Start Amount (₹)</label>
-    <input type="number" id="start-amount" value="10000" step="1000" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:100px;">
+    <input type="text" id="start-amount" value="₹10,000" inputmode="numeric" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:100px;" onfocus="this.value = this.value.replace(/[^\d]/g, '')" onblur="formatStartAmount(this)">
   </div>
   <div class="filter-group">
     <label>Custom Date Range</label>
     <div style="display:flex; gap:8px;">
-      <input type="text" id="date-range" placeholder="Select Dates..." style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:200px; text-align:center; cursor:pointer;">
-      <button class="run-btn" style="background:transparent; border:1px solid #30363d; padding:4px 8px; font-size:12px;" onclick="document.getElementById('date-range')._flatpickr.clear(); fetchData()">Clear</button>
+      <input type="text" id="date-range" placeholder="Start Date to End Date" style="padding:6px; background:#0d1117; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; font-size:12px; width:200px; text-align:center; cursor:pointer;">
+      <button id="btn-clear-date" class="run-btn" disabled style="background:transparent; border:1px solid #30363d; padding:4px 8px; font-size:12px;" onclick="const fp=document.getElementById('date-range')._flatpickr; if(fp){fp.clear(); this.disabled=true; fetchData();}">Clear</button>
     </div>
   </div>
   <div style="flex-grow:1"></div>
@@ -253,17 +256,17 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <div class="tbl-wrap">
     <table id="tbl-intraday">
       <thead><tr>
-        <th style="width:32px" data-k="rank"># <span class="sa">↕</span></th>
+        <th style="width:32px" data-k="rank" class="hide-mobile"># <span class="sa">↕</span></th>
         <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
-        <th style="width:82px" data-k="sec">Sector <span class="sa">↕</span></th>
+        <th style="width:82px" data-k="sec" class="hide-mobile">Sector <span class="sa">↕</span></th>
         <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
         <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
-        <th style="width:52px" data-k="trades">Trades <span class="sa">↕</span></th>
+        <th style="width:52px" data-k="trades" class="hide-mobile">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
-        <th style="width:68px" data-k="netPct">Return % <span class="sa">↕</span></th>
-        <th style="width:80px" data-k="estMoProfit">Mo. Profit <span class="sa">↕</span></th>
-        <th style="width:58px" data-k="maxDD">Max DD <span class="sa">↕</span></th>
+        <th style="width:68px" data-k="netPct" class="hide-mobile">Return % <span class="sa">↕</span></th>
+        <th style="width:80px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
+        <th style="width:58px" data-k="maxDD" class="hide-mobile">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
       <tbody id="tbl-body-intraday"></tbody>
@@ -279,17 +282,17 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <div class="tbl-wrap">
     <table id="tbl-shortterm">
       <thead><tr>
-        <th style="width:32px" data-k="rank"># <span class="sa">↕</span></th>
+        <th style="width:32px" data-k="rank" class="hide-mobile"># <span class="sa">↕</span></th>
         <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
-        <th style="width:82px" data-k="sec">Sector <span class="sa">↕</span></th>
+        <th style="width:82px" data-k="sec" class="hide-mobile">Sector <span class="sa">↕</span></th>
         <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
         <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
-        <th style="width:52px" data-k="trades">Trades <span class="sa">↕</span></th>
+        <th style="width:52px" data-k="trades" class="hide-mobile">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
-        <th style="width:68px" data-k="netPct">Return % <span class="sa">↕</span></th>
-        <th style="width:80px" data-k="estMoProfit">Mo. Profit <span class="sa">↕</span></th>
-        <th style="width:58px" data-k="maxDD">Max DD <span class="sa">↕</span></th>
+        <th style="width:68px" data-k="netPct" class="hide-mobile">Return % <span class="sa">↕</span></th>
+        <th style="width:80px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
+        <th style="width:58px" data-k="maxDD" class="hide-mobile">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
       <tbody id="tbl-body-shortterm"></tbody>
@@ -413,7 +416,7 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
       
       <div style="background:var(--color-background-secondary); padding:12px; border-radius:8px; grid-column: 1 / -1;">
         <h3 style="font-size:12px; margin-top:0; color:var(--color-text-secondary); text-transform:uppercase;">Signal Confidence</h3>
-        <div class="cg"><label style="width:100px;">Min Score</label><input type="range" min="1" max="5" step="1" value="3" oninput="P.minS=+this.value;document.getElementById('v-ms-c').textContent=this.value+'/5';schedule()"><span id="v-ms-c">3/5</span><span style="margin-left:10px;font-size:10px;color:var(--color-text-tertiary)">Out of max 5 filters. Score > 3 requires BB or Volume to be enabled.</span></div>
+        <div class="cg"><label style="width:100px;">Min Score</label><input type="range" min="1" max="5" step="1" value="3" oninput="P.minS=+this.value;document.getElementById('v-ms-c').textContent=this.value+'/5';schedule()"><span id="v-ms-c">3/5</span><span id="min-score-warning" style="margin-left:10px;font-size:10px;color:var(--color-text-tertiary)">Out of max 5 filters.</span></div>
       </div>
 
       <div style="background:var(--color-background-secondary); padding:12px; border-radius:8px; grid-column: 1 / -1;">
@@ -536,6 +539,12 @@ function applyPreset(type) {
 }
 
 const formatCurrency = (num) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(num);
+const formatStartAmount = (el) => {
+  let val = el.value.replace(/[^\d]/g, '');
+  if (!val) val = '10000';
+  el.value = '₹' + parseInt(val).toLocaleString('en-IN');
+  sortAndRender();
+};
 
 function formatSignal(raw, isShort) {
   if (!raw || !raw.includes('|')) return raw;
@@ -584,11 +593,14 @@ updateClock();
 function resetCountdown() {
   clearInterval(countdownTimer);
   countdownVal = 10;
-  document.getElementById('countdown-num').textContent = countdownVal;
+  const txt = document.getElementById('countdown-text');
+  if (txt) txt.innerHTML = `Next refresh in <b id="countdown-num" style="color:#3fb950;">${countdownVal}</b>s`;
   countdownTimer = setInterval(() => {
     countdownVal--;
-    document.getElementById('countdown-num').textContent = countdownVal;
+    const num = document.getElementById('countdown-num');
+    if (num) num.textContent = countdownVal;
     if (countdownVal <= 0) {
+      if (txt) txt.innerHTML = `<span style="color:var(--color-text-secondary)">Refreshing...</span>`;
       clearInterval(countdownTimer);
       fetchData();
     }
@@ -629,6 +641,7 @@ function setMarket(m) {
   // The UI will simply keep showing the old data while the new data fetches instantly from cache,
   // completely eliminating any 'blank screen' or 'stuck' sensation!
   fetchData();
+  fetchNews();
 }
 
 function setTimeframe(tf) {
@@ -669,17 +682,27 @@ async function fetchData() {
   }
   
   try {
+    if (resultsIntraday.length === 0) {
+      document.getElementById('tbl-body-intraday').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--color-text-secondary)"><span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle;"></span> <span style="margin-left:8px; vertical-align:middle;">Loading signals...</span></td></tr>`;
+      document.getElementById('tbl-body-shortterm').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--color-text-secondary)"><span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle;"></span> <span style="margin-left:8px; vertical-align:middle;">Loading signals...</span></td></tr>`;
+      
+      ['c-best', 'c-wr', 'c-ga', 'c-pf'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></span>';
+      });
+    }
+
     const p1 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2 })
-    }).then(r => r.json());
+    }).then(r => r.ok ? r.json() : Promise.reject('API Error: ' + r.status));
     
     const p2 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: '1d', range: '5y', period1, period2 })
-    }).then(r => r.json());
+    }).then(r => r.ok ? r.json() : Promise.reject('API Error: ' + r.status));
 
     const [dataIntraday, dataShortTerm] = await Promise.all([p1, p2]);
     
@@ -704,6 +727,8 @@ async function fetchData() {
     resultsShortTerm = Array.isArray(dataShortTerm) ? dataShortTerm : [];
     window._marketSwitching = false; // Data arrived, clear loading flag
     
+    updateCards(resultsShortTerm); // Decoupled KPI updates
+    
     // Complete progress bar
     clearInterval(progTimer);
     bar.style.width = '100%';
@@ -727,6 +752,14 @@ async function fetchData() {
     clearInterval(progTimer);
     bar.style.width = '0%';
     sts.textContent = '❌ Error connecting to backend.';
+    if (resultsIntraday.length === 0) {
+      document.getElementById('tbl-body-intraday').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:#f85149;">❌ Failed to load data. Please refresh.</td></tr>`;
+      document.getElementById('tbl-body-shortterm').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:#f85149;">❌ Failed to load data. Please refresh.</td></tr>`;
+      ['c-best', 'c-wr', 'c-ga', 'c-pf'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '—';
+      });
+    }
   }
   
   btn.disabled = false;
@@ -735,7 +768,7 @@ async function fetchData() {
 
 async function autoOptimize() {
   const btn = document.getElementById('btn-optimize');
-  btn.textContent = 'Simulating...';
+  btn.innerHTML = '<span class="spinner" style="display:inline-block; width:12px; height:12px; border:2px solid #FFD700; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></span> Optimizing...';
   btn.style.opacity = '0.7';
   
   let period1 = null;
@@ -793,22 +826,28 @@ async function autoOptimize() {
       document.getElementById('ai-name').textContent = ai.name;
       
       let descHtml = ai.desc;
-      if (top3Sets && top3Sets.length > 0) {
-        descHtml += `<div style="margin-top:12px;"><strong>Top 3 Combinations:</strong>`;
-        top3Sets.forEach((set, idx) => {
-          const stocksStr = set.stocks.map(s => `<span style="color:#FFD700;font-weight:bold;">${s}</span>`).join(', ');
-          const paramsStr = JSON.stringify(set.params).replace(/"/g, '&quot;');
-          descHtml += `<div style="margin-top:6px; padding:6px; background:#21262d; border-radius:4px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
-            <span>Set ${idx + 1}: ${stocksStr} (Return: ${set.score}%)</span>
-            <button class="run-btn" style="background:#30363d;color:#FFD700;border:1px solid #FFD700;padding:2px 6px;font-size:10px;border-radius:4px;" onclick="applyAndFetch('${paramsStr}')">Apply</button>
-          </div>`;
-        });
-        descHtml += `</div>`;
+      if (ai.optimized === false) {
+        descHtml = `<span style="color:#f85149">Could not optimize — insufficient data.</span>`;
+        document.getElementById('ai-wr').textContent = 'N/A';
+        document.getElementById('ai-pf').textContent = 'N/A';
+      } else {
+        document.getElementById('ai-wr').textContent = ai.expectedWr + '%';
+        document.getElementById('ai-pf').textContent = ai.expectedPf;
+        if (top3Sets && top3Sets.length > 0) {
+          descHtml += `<div style="margin-top:12px;"><strong>Top 3 Combinations:</strong>`;
+          top3Sets.forEach((set, idx) => {
+            const stocksStr = set.stocks.map(s => `<span style="color:#FFD700;font-weight:bold;">${s}</span>`).join(', ');
+            const paramsStr = JSON.stringify(set.params).replace(/"/g, '&quot;');
+            descHtml += `<div style="margin-top:6px; padding:6px; background:#21262d; border-radius:4px; font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+              <span>Set ${idx + 1}: ${stocksStr} (Return: ${set.score}%)</span>
+              <button class="run-btn" style="background:#30363d;color:#FFD700;border:1px solid #FFD700;padding:2px 6px;font-size:10px;border-radius:4px;" onclick="applyAndFetch('${paramsStr}')">Apply</button>
+            </div>`;
+          });
+          descHtml += `</div>`;
+        }
       }
       
       document.getElementById('ai-desc').innerHTML = descHtml;
-      document.getElementById('ai-wr').textContent = ai.expectedWr;
-      document.getElementById('ai-pf').textContent = ai.expectedPf;
     }
     
     btn.textContent = '🧠 AI Optimized!';
@@ -842,7 +881,7 @@ function sortAndRender(){
   }
 
   
-  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value.replace(/[^\d]/g, '')) || 10000;
   dataIntraday.forEach(r => {
     r.estMoProfit = startAmount * ((r.netPct / 2) / 100);
   });
@@ -866,9 +905,6 @@ function sortAndRender(){
   
   dataIntraday.forEach((r,i)=>r.rank=i+1);
   dataShortTerm.forEach((r,i)=>r.rank=i+1);
-  
-  // Update Global Cards using an aggregate or just ShortTerm for stability
-  updateCards(resultsShortTerm);
   
   // Portfolio Recommendation for Double Capital
   const goal = document.getElementById('opt-goal')?.value;
@@ -901,6 +937,22 @@ function sortAndRender(){
   // Build sector filters based on the full combined set
   buildSectorFilters([...resultsIntraday, ...resultsShortTerm]);
   renderHeatmap();
+
+  // Point 6: Disable filter tabs if no data
+  const sigTabs = document.getElementById('sig-filters');
+  if (resultsIntraday.length === 0 && resultsShortTerm.length === 0) {
+    if (sigTabs) {
+      sigTabs.style.pointerEvents = 'none';
+      sigTabs.style.opacity = '0.5';
+      sigTabs.setAttribute('title', 'Load data to filter');
+    }
+  } else {
+    if (sigTabs) {
+      sigTabs.style.pointerEvents = 'auto';
+      sigTabs.style.opacity = '1';
+      sigTabs.removeAttribute('title');
+    }
+  }
 }
 
 function updateCards(data){
@@ -995,17 +1047,17 @@ function buildRowHTML(r) {
   else if (sentiment === 'Bearish') sentimentHTML = ' <span title="Bearish Sentiment">🐻</span>';
 
   return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
-    <td style="color:var(--color-text-tertiary)">${r.rank}</td>
+    <td class="hide-mobile" style="color:var(--color-text-tertiary)">${r.rank}</td>
     <td style="font-weight:500; white-space:nowrap;">${r.s}${sentimentHTML} <span onclick="event.stopPropagation(); const amt=(document.getElementById('start-amount')?.value||10000); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}&amount='+amt,'_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:10px; background:rgba(88,166,255,0.12); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;">🔬</span></td>
-    <td><span class="sbadge">${r.sec}</span></td>
+    <td class="hide-mobile"><span class="sbadge">${r.sec}</span></td>
     <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
     <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>
-    <td style="color:var(--color-text-secondary)">${r.trades}</td>
+    <td class="hide-mobile" style="color:var(--color-text-secondary)">${r.trades}</td>
     <td class="${wrCls}">${r.winRate}%</td>
     <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
-    <td class="${netCls}">${r.netPct>=0?'+':''}${r.netPct}%</td>
-    <td class="${netCls}">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
-    <td style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
+    <td class="${netCls} hide-mobile">${r.netPct>=0?'+':''}${r.netPct}%</td>
+    <td class="${netCls} hide-mobile">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
+    <td class="hide-mobile" style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
     <td><span class="badge b${r.grade}">${r.grade}</span></td>
   </tr>`;
 }
@@ -1120,7 +1172,7 @@ function openTradesModal(symbol) {
   // ── Declare ALL shared variables ONCE at the top ──────────────────────────
   const isCrypto   = st.sec === 'Crypto';
   const isIntraday = resultsIntraday.some(r => r.s === symbol);
-  const startAmount = parseFloat(document.getElementById('start-amount')?.value) || 10000;
+  const startAmount = parseFloat(document.getElementById('start-amount')?.value.replace(/[^\d]/g, '')) || 10000;
 
   // Groww variable margin: hash symbol → 3x, 4x, or 5x for intraday stocks
   function getStockMargin(sym) {
@@ -1325,7 +1377,20 @@ document.querySelectorAll('th[data-k]').forEach(th=>{
   };
 });
 
+function checkTunerWarnings() {
+  const warningSpan = document.getElementById('min-score-warning');
+  if (!warningSpan) return;
+  if (P.minS > 3 && P.bbMode === 0 && P.volM === 0) {
+    warningSpan.style.color = '#F85149';
+    warningSpan.textContent = '⚠️ Warning: Min Score > 3 requires BB Mode or Volume to be enabled. No signals will match.';
+  } else {
+    warningSpan.style.color = 'var(--color-text-tertiary)';
+    warningSpan.textContent = 'Out of max 5 filters.';
+  }
+}
+
 function schedule(){
+  checkTunerWarnings();
   clearTimeout(schedTimer);
   schedTimer=setTimeout(fetchData, 600);
 }
@@ -1343,6 +1408,10 @@ renderTable([], 'tbl-body-shortterm');
   flatpickr("#date-range", {
     mode: "range",
     dateFormat: "Y-m-d",
+    placeholder: "Start Date to End Date",
+    onChange: function(selectedDates) {
+      document.getElementById('btn-clear-date').disabled = selectedDates.length === 0;
+    },
     onClose: function(selectedDates) {
       if (selectedDates.length === 2) {
         fetchData();
@@ -1354,6 +1423,26 @@ window.stockSentiment = {}; // Global store for sentiment
 
 async function fetchNews() {
   const panel = document.getElementById('news-panel');
+  
+  if (currentMarket !== 'crypto') {
+    const now = new Date();
+    // Get IST time
+    const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const day = istTime.getDay();
+    const hour = istTime.getHours();
+    const min = istTime.getMinutes();
+    const timeVal = hour + min/60;
+    
+    // Market is open M-F, 09:15 to 15:30
+    const isWeekend = day === 0 || day === 6;
+    const isMarketOpen = !isWeekend && timeVal >= 9.25 && timeVal <= 15.5;
+    
+    if (!isMarketOpen) {
+      if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Market is closed (09:15–15:30 IST).</div>';
+      return;
+    }
+  }
+
   if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Analyzing live sentiment...</div>';
   
   // Get top 5 assets by PF to check sentiment (expanded from 3 since it's faster now)
@@ -1397,7 +1486,7 @@ async function fetchNews() {
     
   } catch (err) {
     console.error(err);
-    if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Sentiment engine offline.</div>';
+    if (panel) panel.innerHTML = '<div style="color:#f85149; font-size:12px;">Sentiment unavailable.</div>';
   }
 }
 
@@ -1448,8 +1537,9 @@ window.onclick = function(event) {
   }
 }
 
-flatpickr("#date-range", { mode: "range", dateFormat: "Y-m-d" });
+// Removed duplicate flatpickr init
 fetchData();
+fetchNews();
 
 </script>
 </body>

@@ -738,7 +738,9 @@ app.post('/api/optimize', express.json(), async (req, res) => {
     if (uniqueSets.length >= 3) break;
   }
 
+  let optimized = true;
   if (!bestParams) {
+    optimized = false;
     bestParams = { emaF: 9, emaS: 21, atrM: 2.0, rrR: 2.0, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode: 0, volM: 0 };
   }
 
@@ -759,7 +761,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
 
   res.json({
     params: bestParams,
-    aiProfile: { name, desc, expectedWr: bestProfile.wr.toFixed(1), expectedPf: bestProfile.pf.toFixed(2) },
+    aiProfile: { name, desc, expectedWr: bestProfile.wr.toFixed(1), expectedPf: bestProfile.pf.toFixed(2), optimized },
     top3Sets: uniqueSets.map(r => ({
       params: r.params,
       stocks: r.top3Stocks,
