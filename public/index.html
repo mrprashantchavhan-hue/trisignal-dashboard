@@ -542,7 +542,7 @@ function setMarket(m) {
   
   resultsIntraday = [];
   resultsShortTerm = [];
-  previousResults = {};
+  // previousResults is intentionally NOT cleared to maintain signal state across tab switches
   renderTable(resultsIntraday, 'tbl-body-intraday');
   renderTable(resultsShortTerm, 'tbl-body-shortterm');
   fetchData();

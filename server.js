@@ -819,7 +819,9 @@ app.post('/api/news', express.json(), async (req, res) => {
 async function prewarmCache() {
   const warmups = [
     { market: 'nifty', interval: '15m', range: '60d' },
-    { market: 'nifty', interval: '1d',  range: '5y'  }
+    { market: 'nifty', interval: '1d',  range: '5y'  },
+    { market: 'crypto', interval: '15m', range: '60d' },
+    { market: 'crypto', interval: '1d',  range: '5y'  }
   ];
   for (const w of warmups) {
     const key = `${w.market}_${w.interval}_${w.range}_null_null`;
