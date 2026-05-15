@@ -957,6 +957,7 @@ app.post(['/api/deep-analysis', '/deep-analysis'], express.json(), async (req, r
 
 async function prewarmCache() {
   const niftyList  = [
+    { interval: '5m',  range: '30d' },
     { interval: '15m', range: '30d' }, // Reduced from 60d for stability
     { interval: '30m', range: '30d' },
     { interval: '1h',  range: '60d' },
@@ -964,6 +965,7 @@ async function prewarmCache() {
     { interval: '1wk', range: '5y'  },
   ];
   const cryptoList = [
+    { interval: '5m',  range: '30d' },
     { interval: '15m', range: '30d' },
     { interval: '30m', range: '30d' },
     { interval: '1h',  range: '60d' },
