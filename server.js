@@ -640,15 +640,43 @@ function computeResults(cacheKey, params) {
       }
     }
 
+    // Calculate Market Return for filtering
+    let marketReturn = 0;
+    const isIntraday = ['5m', '15m', '30m'].includes(interval);
+    
+    if (item.px && item.px.length > 5) {
+      if (isIntraday) {
+        // For intraday, use the return over the ENTIRE cached data (usually 20-30 days)
+        const firstPx = item.px[0];
+        const lastPx = item.px[item.px.length - 1];
+        if (firstPx > 0) marketReturn = ((lastPx - firstPx) / firstPx) * 100;
+      } else {
+        // For Daily/Weekly, look back 3 months (~60 trading bars for Daily)
+        const isDaily = interval === '1d';
+        const lookback = isDaily ? 60 : 12; // 60 days for daily, 12 weeks for weekly
+        if (item.px.length > lookback) {
+          const prevPx = item.px[item.px.length - lookback];
+          const lastPx = item.px[item.px.length - 1];
+          if (prevPx > 0) marketReturn = ((lastPx - prevPx) / prevPx) * 100;
+        } else {
+          // Fallback to first available if not enough bars
+          const firstPx = item.px[0];
+          const lastPx = item.px[item.px.length - 1];
+          if (firstPx > 0) marketReturn = ((lastPx - firstPx) / firstPx) * 100;
+        }
+      }
+    }
+
     return {
       ...item.st,
       ...r,
       grade: g,
       gradeN: n,
       p: item.priceStr,
-      chg: chgPct
+      chg: chgPct,
+      marketReturn
     };
-  }).filter(stock => stock.netPct > 0);
+  }).filter(stock => stock.netPct > 0 && stock.marketReturn > 0);
 }
 
 app.post(['/api/screener', '/screener'], express.json(), async (req, res) => {
