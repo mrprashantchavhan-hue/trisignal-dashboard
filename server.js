@@ -16,6 +16,10 @@ const SENTIMENT_EXTRAS = {
   'upgrade': 2, 'soar': 2, 'soars': 2, 'tumble': -2, 'tumbles': -2, 'record': 1
 };
 app.use(cors());
+app.use((req, res, next) => {
+  console.log('Request Path:', req.path);
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const STOCKS = [
@@ -513,7 +517,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
     try {
       const newRawData = [];
       const list = market === 'crypto' ? CRYPTO : STOCKS;
-      const chunkSize = 10; // Reduced chunk size to avoid overloading connection pool
+      const chunkSize = 40; // Restored to May 7th value for speed
       for (let i = 0; i < list.length; i += chunkSize) {
         const chunk = list.slice(i, i + chunkSize);
         const promises = chunk.map(async (st) => {
@@ -613,7 +617,7 @@ function computeResults(cacheKey, params) {
   });
 }
 
-app.post('/api/screener', express.json(), async (req, res) => {
+app.post(['/api/screener', '/screener'], express.json(), async (req, res) => {
   try {
     const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, bbP: 20, bbStd: 2.0, volM: 0 };
     const market = req.body.market || 'nifty';
@@ -630,18 +634,13 @@ app.post('/api/screener', express.json(), async (req, res) => {
     const isFetching = !!fetchPromises[cacheKey];
     
     if (hasData) {
-      // Data available — respond immediately, refresh in background
       res.json(computeResults(cacheKey, params));
-      if (!isFetching) {
-        fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error('Background refresh failed:', e.message));
-      }
     } else if (isFetching) {
-      // Fetch in progress but no data yet — respond with empty + indicator
-      res.json({ loading: true, message: 'Fetching data, please wait...', results: [] });
+      await fetchPromises[cacheKey];
+      res.json(computeResults(cacheKey, params));
     } else {
-      // No data and not fetching — start fetch, respond with empty
-      fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error('Fetch failed:', e.message));
-      res.json({ loading: true, message: 'Initiating fetch, please poll again in a few seconds...', results: [] });
+      await fetchRealtimeData(market, interval, range, period1, period2);
+      res.json(computeResults(cacheKey, params));
     }
   } catch (err) {
     console.error('Screener API Error:', err.message);
@@ -649,7 +648,7 @@ app.post('/api/screener', express.json(), async (req, res) => {
   }
 });
 
-app.post('/api/optimize', express.json(), async (req, res) => {
+app.post(['/api/optimize', '/optimize'], express.json(), async (req, res) => {
   const market = req.body.market || 'nifty';
   const interval = req.body.interval || '15m';
   const range = req.body.range || '20d';
@@ -810,7 +809,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
   });
 });
 
-app.post('/api/news', express.json(), async (req, res) => {
+app.post(['/api/news', '/news'], express.json(), async (req, res) => {
   const tickers = req.body.tickers || [];
   if (!tickers.length) return res.json([]);
   
@@ -862,7 +861,7 @@ app.post('/api/news', express.json(), async (req, res) => {
 });
 
 // ── Deep Per-Stock Analysis: all 6 timeframes ──────────────────────────────
-app.post('/api/deep-analysis', express.json(), async (req, res) => {
+app.post(['/api/deep-analysis', '/deep-analysis'], express.json(), async (req, res) => {
   try {
     const { symbol, market } = req.body;
     const params = req.body.params || { emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, bbP:20, bbStd:2.0, volM:0, direction:'BOTH' };
@@ -992,9 +991,10 @@ async function prewarmCache() {
 }
 
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
     prewarmCache();
     setInterval(() => {
       // Only prewarm if no requests are in flight (simple mutex)
