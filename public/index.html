@@ -656,7 +656,7 @@ async function fetchData() {
       });
     }
 
-    const p1 = fetch('/api/screener', {
+    const p1 = fetch('https://trisignal-dashboard-jy25.onrender.com/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2 }),
@@ -666,7 +666,7 @@ async function fetchData() {
     // Small delay to avoid concurrent heavy requests
     await new Promise(r => setTimeout(r, 200));
 
-    const p2 = fetch('/api/screener', {
+    const p2 = fetch('https://trisignal-dashboard-jy25.onrender.com/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ params: P, market: currentMarket, interval: '1d', range: '5y', period1, period2 }),
@@ -774,10 +774,10 @@ async function autoOptimize() {
   const goal = document.getElementById('opt-goal').value;
   
   try {
-    const res = await fetch('/api/optimize', {
+    const res = await fetch('https://trisignal-dashboard-jy25.onrender.com/api/optimize', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ market: currentMarket, interval: '15m', range: '60d', period1, period2, goal })
+      body: JSON.stringify({ market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2, goal })
     });
     const data = await res.json();
     const optimalP = data.params;
@@ -1306,7 +1306,7 @@ function openTradesModal(symbol) {
       const formatTime = (ts) => {
         if (!ts) return '-';
         const d = new Date(ts);
-        return d.toLocaleDateString('en-IN', {month:'short', day:'numeric'})
+        return d.toLocaleDateString('en-IN', {year:'numeric', month:'short', day:'numeric'})
              + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
       };
 
@@ -1501,7 +1501,7 @@ async function fetchNews() {
   }
   
   try {
-    const res = await fetch('/api/news', {
+    const res = await fetch('https://trisignal-dashboard-jy25.onrender.com/api/news', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tickers: top })
