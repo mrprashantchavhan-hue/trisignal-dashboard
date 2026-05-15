@@ -185,36 +185,17 @@ const STOCKS = [
 ];
 
 const INTRADAY_STOCKS = [
-  {s:'HDFCBANK', n:'HDFC Bank', sec:'Banking'},
-  {s:'ICICIBANK', n:'ICICI Bank', sec:'Banking'},
-  {s:'SBIN', n:'SBI', sec:'Banking'},
-  {s:'AXISBANK', n:'Axis Bank', sec:'Banking'},
-  {s:'KOTAKBANK', n:'Kotak Mahindra Bank', sec:'Banking'},
-  {s:'INFY', n:'Infosys', sec:'IT'},
-  {s:'TCS', n:'TCS', sec:'IT'},
-  {s:'WIPRO', n:'Wipro', sec:'IT'},
-  {s:'RELIANCE', n:'Reliance Industries', sec:'Energy'},
   {s:'ONGC', n:'ONGC', sec:'Energy'},
   {s:'COALINDIA', n:'Coal India', sec:'Energy'},
   {s:'NTPC', n:'NTPC', sec:'Power'},
-  {s:'TATAMOTORS', n:'Tata Motors', sec:'Auto'},
-  {s:'MARUTI', n:'Maruti Suzuki', sec:'Auto'},
-  {s:'M&M', n:'Mahindra & Mahindra', sec:'Auto'},
   {s:'SUNPHARMA', n:'Sun Pharma', sec:'Pharma'},
   {s:'CIPLA', n:'Cipla', sec:'Pharma'},
   {s:'TATASTEEL', n:'Tata Steel', sec:'Metals'},
   {s:'JSWSTEEL', n:'JSW Steel', sec:'Metals'},
   {s:'HINDALCO', n:'Hindalco', sec:'Metals'},
-  {s:'ITC', n:'ITC', sec:'FMCG'},
-  {s:'HINDUNILVR', n:'Hindustan Unilever', sec:'FMCG'},
-  {s:'BHARTIARTL', n:'Bharti Airtel', sec:'Telecom'},
-  {s:'LT', n:'Larsen & Toubro', sec:'Infra'},
-  {s:'IRCTC', n:'IRCTC', sec:'Consumer'},
-  {s:'BEL', n:'Bharat Electronics', sec:'Defense'},
   {s:'HAL', n:'Hindustan Aeronautics', sec:'Defense'},
   {s:'ADANIENT', n:'Adani Enterprises', sec:'Infra'},
-  {s:'ADANIPORTS', n:'Adani Ports', sec:'Infra'},
-  {s:'ZOMATO', n:'Zomato', sec:'Consumer'}
+  {s:'ADANIPORTS', n:'Adani Ports', sec:'Infra'}
 ];
 
 const CRYPTO = [
