@@ -661,70 +661,64 @@ app.post(['/api/optimize', '/optimize'], express.json(), async (req, res) => {
   const START = Date.now();
   let iterations = 0;
   
-  for (const emaF of emaFs) {
-    for (const emaS of emaSs) {
-      if (emaF >= emaS) continue;
-      for (const atrM of atrMs) {
-        for (const rrR of rrRs) {
-          for (const bbMode of bbModes) {
-            for (const bbP of bbPs) {
-              for (const bbStd of bbStds) {
-                for (const volM of volMs) {
-                  for (const rsiLow of rsiLows) {
-                    for (const rsiHigh of rsiHighs) {
-                      for (const minS of minSs) {
-                        const params = { emaF, emaS, atrM, rrR, minS, rsiL: 14, rsiLow, rsiHigh, macdF: 12, macdS: 26, timeStop: 25, bbMode, bbP, bbStd, volM };
-                        
-                        let totalPF = 0, totalWR = 0, validCount = 0, sumTrades = 0, totalNetPct = 0;
-                        const assetNetPcts = [];
-                        for (const item of validAssets) {
-                          const r = backtest(item.px, item.ts, item.vl, {...params, interval});
-                          if (r.trades > 0) {
-                            totalPF += r.pf;
-                            totalWR += r.winRate;
-                            sumTrades += r.trades;
-                            totalNetPct += r.netPct;
-                            assetNetPcts.push({ s: item.st.s, netPct: r.netPct, pf: r.pf, wr: r.winRate });
-                            validCount++;
-                          }
-                        }
-                        
-                        if (validCount === 0) continue;
-                        iterations++;
-                        const avgPF = totalPF / validCount;
-                        const avgWR = totalWR / validCount;
-                        const avgTrades = sumTrades / validCount;
-                        const avgNetPct = totalNetPct / validCount;
-                        
-                        let score = -1;
-                        if (goal === 'max_pf') score = avgPF;
-                        else if (goal === 'max_wr') score = avgWR;
-                        else if (goal === 'balanced') score = avgPF * (avgWR / 100);
-                        else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
-                        else if (goal === 'double_capital') {
-                          assetNetPcts.sort((a, b) => b.netPct - a.netPct);
-                          score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val.netPct, 0);
-                        }
-                        
-                        assetNetPcts.sort((a, b) => b.netPct - a.netPct);
-                        const top3Stocks = assetNetPcts.slice(0, 3).map(x => x.s);
-                        
-                        topResults.push({ score, params, profile: { wr: avgWR, pf: avgPF }, top3Stocks });
-                        
-                        if (score > bestScore) {
-                          bestScore = score;
-                          bestParams = params;
-                          bestProfile = { wr: avgWR, pf: avgPF };
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+  const maxIterations = 1000;
+  for (let i = 0; i < maxIterations; i++) {
+    const emaF = emaFs[Math.floor(Math.random() * emaFs.length)];
+    const emaS = emaSs[Math.floor(Math.random() * emaSs.length)];
+    if (emaF >= emaS) { i--; continue; }
+    
+    const atrM = atrMs[Math.floor(Math.random() * atrMs.length)];
+    const rrR = rrRs[Math.floor(Math.random() * rrRs.length)];
+    const bbMode = bbModes[Math.floor(Math.random() * bbModes.length)];
+    const bbP = bbPs[Math.floor(Math.random() * bbPs.length)];
+    const bbStd = bbStds[Math.floor(Math.random() * bbStds.length)];
+    const volM = volMs[Math.floor(Math.random() * volMs.length)];
+    const rsiLow = rsiLows[Math.floor(Math.random() * rsiLows.length)];
+    const rsiHigh = rsiHighs[Math.floor(Math.random() * rsiHighs.length)];
+    const minS = minSs[Math.floor(Math.random() * minSs.length)];
+    
+    const params = { emaF, emaS, atrM, rrR, minS, rsiL: 14, rsiLow, rsiHigh, macdF: 12, macdS: 26, timeStop: 25, bbMode, bbP, bbStd, volM };
+    
+    let totalPF = 0, totalWR = 0, validCount = 0, sumTrades = 0, totalNetPct = 0;
+    const assetNetPcts = [];
+    for (const item of validAssets) {
+      const r = backtest(item.px, item.ts, item.vl, {...params, interval});
+      if (r.trades > 0) {
+        totalPF += r.pf;
+        totalWR += r.winRate;
+        sumTrades += r.trades;
+        totalNetPct += r.netPct;
+        assetNetPcts.push({ s: item.st.s, netPct: r.netPct, pf: r.pf, wr: r.winRate });
+        validCount++;
       }
+    }
+    
+    if (validCount === 0) continue;
+    iterations++;
+    const avgPF = totalPF / validCount;
+    const avgWR = totalWR / validCount;
+    const avgTrades = sumTrades / validCount;
+    const avgNetPct = totalNetPct / validCount;
+    
+    let score = -1;
+    if (goal === 'max_pf') score = avgPF;
+    else if (goal === 'max_wr') score = avgWR;
+    else if (goal === 'balanced') score = avgPF * (avgWR / 100);
+    else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
+    else if (goal === 'double_capital') {
+      assetNetPcts.sort((a, b) => b.netPct - a.netPct);
+      score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val.netPct, 0);
+    }
+    
+    assetNetPcts.sort((a, b) => b.netPct - a.netPct);
+    const top3Stocks = assetNetPcts.slice(0, 3).map(x => x.s);
+    
+    topResults.push({ score, params, profile: { wr: avgWR, pf: avgPF }, top3Stocks });
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestParams = params;
+      bestProfile = { wr: avgWR, pf: avgPF };
     }
   }
   
