@@ -75,12 +75,12 @@ body {
 .cl { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
 .cv { font-size: 17px; font-weight: 500; color: var(--color-text-primary); }
 .cs { font-size: 10px; color: var(--color-text-tertiary); margin-top: 1px; }
-.tbl-wrap { overflow-x: auto; border: 0.5px solid var(--color-border-tertiary); border-radius: 8px; margin-top: 12px; max-height: 480px; overflow-y: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-thead tr { position: sticky; top: 0; z-index: 2; }
-th { padding: 8px 8px; text-align: left; font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; white-space: nowrap; background: var(--color-background-secondary); user-select: none; }
-th:hover { color: var(--color-text-primary); }
-td { padding: 7px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl-wrap { overflow-x: auto; border: 0.5px solid var(--color-border-tertiary); border-radius: 8px; margin-top: 12px; max-height: 520px; overflow-y: auto; background: var(--color-background-primary); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; table-layout: fixed; }
+thead tr { position: sticky; top: 0; z-index: 10; }
+th { padding: 12px 8px; text-align: left; font-size: 10px; font-weight: 600; color: var(--color-text-tertiary); border-bottom: 1px solid var(--color-border-primary); cursor: pointer; white-space: nowrap; background: var(--color-background-secondary); user-select: none; text-transform: uppercase; letter-spacing: 0.03em; }
+th:hover { color: var(--color-text-primary); background: #1C2128; }
+td { padding: 10px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--color-background-secondary); }
 .tr-row { cursor: pointer; transition: background 0.1s; }
@@ -257,15 +257,15 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <table id="tbl-intraday">
       <thead><tr>
         <th style="width:32px" data-k="rank" class="hide-mobile"># <span class="sa">↕</span></th>
-        <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
+        <th style="width:180px" data-k="s">Asset <span class="sa">↕</span></th>
         <th style="width:82px" data-k="sec" class="hide-mobile">Sector <span class="sa">↕</span></th>
-        <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
-        <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
+        <th style="width:85px" data-k="p">Price (₹) <span class="sa">↕</span></th>
+        <th style="width:200px" data-k="signal">Live Signal <span class="sa">↕</span></th>
         <th style="width:52px" data-k="trades" class="hide-mobile">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
         <th style="width:68px" data-k="netPct" class="hide-mobile">Return % <span class="sa">↕</span></th>
-        <th style="width:80px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
+        <th style="width:85px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
         <th style="width:58px" data-k="maxDD" class="hide-mobile">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
@@ -283,15 +283,15 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
     <table id="tbl-shortterm">
       <thead><tr>
         <th style="width:32px" data-k="rank" class="hide-mobile"># <span class="sa">↕</span></th>
-        <th style="width:92px" data-k="s">Symbol <span class="sa">↕</span></th>
+        <th style="width:180px" data-k="s">Asset <span class="sa">↕</span></th>
         <th style="width:82px" data-k="sec" class="hide-mobile">Sector <span class="sa">↕</span></th>
-        <th style="width:72px" data-k="p">Price (₹) <span class="sa">↕</span></th>
-        <th style="width:220px" data-k="signal">Live Signal <span class="sa">↕</span></th>
+        <th style="width:85px" data-k="p">Price (₹) <span class="sa">↕</span></th>
+        <th style="width:200px" data-k="signal">Live Signal <span class="sa">↕</span></th>
         <th style="width:52px" data-k="trades" class="hide-mobile">Trades <span class="sa">↕</span></th>
         <th style="width:58px" data-k="winRate">Win % <span class="sa">↕</span></th>
         <th style="width:55px" data-k="pf">PF <span class="sa">↕</span></th>
         <th style="width:68px" data-k="netPct" class="hide-mobile">Return % <span class="sa">↕</span></th>
-        <th style="width:80px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
+        <th style="width:85px" data-k="estMoProfit" class="hide-mobile">Mo. Profit <span class="sa">↕</span></th>
         <th style="width:58px" data-k="maxDD" class="hide-mobile">Max DD <span class="sa">↕</span></th>
         <th style="width:48px" data-k="gradeN">Grade <span class="sa">↕</span></th>
       </tr></thead>
@@ -411,6 +411,8 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
             <option value="2">Mean Reversion (Lower Band Bounce)</option>
           </select>
         </div>
+        <div class="cg" style="margin-bottom:8px;"><label style="width:100px;">BB Period</label><input type="range" min="5" max="50" step="1" value="20" oninput="P.bbP=+this.value;document.getElementById('v-bbp').textContent=this.value;schedule()"><span id="v-bbp">20</span></div>
+        <div class="cg" style="margin-bottom:8px;"><label style="width:100px;">BB Std Dev</label><input type="range" min="0.5" max="4.0" step="0.1" value="2.0" oninput="P.bbStd=+this.value;document.getElementById('v-bbs').textContent=(+this.value).toFixed(1);schedule()"><span id="v-bbs">2.0</span></div>
         <div class="cg"><label style="width:100px;">Volume Spike</label><input type="range" min="0" max="3" step="0.5" value="0" oninput="P.volM=+this.value;document.getElementById('v-vol').textContent=this.value>0?this.value+'x Avg':'Off';schedule()"><span id="v-vol">Off</span></div>
       </div>
       
@@ -437,92 +439,44 @@ dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); }
         </div>
         <div id="portfolio-recommendation" style="margin-top:12px; font-size:12px; color:#c9d1d9; border-top:1px solid rgba(255,215,0,0.2); padding-top:8px;"></div>
       </div>
+
+      <div style="background:var(--color-background-info); padding:15px; border-radius:8px; grid-column: 1 / -1; border: 0.5px solid var(--color-text-info);">
+        <h3 style="margin-top:0; margin-bottom:8px; font-size:12px; color:var(--color-text-info); text-transform:uppercase; letter-spacing:0.05em;">📏 Strategy Standards & Definitions</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; font-size:11px; line-height:1.4; color:var(--color-text-secondary);">
+          <div>
+            <strong style="color:var(--color-text-primary);">Bollinger Bands (BB):</strong> Standard deviation (Std Dev) measures volatility. A Std Dev of 2.0 covers ~95% of price action. Period (default 20) is the lookback for the moving average.
+          </div>
+          <div>
+            <strong style="color:var(--color-text-primary);">RSI Bounds:</strong> Standard 14-period RSI. Lower bound (35-40) for oversold/entry support, Upper bound (60-65) for overbought/trend strength.
+          </div>
+          <div>
+            <strong style="color:var(--color-text-primary);">ATR Multiplier:</strong> Uses Average True Range to set Stop Loss. A multiplier of 2.5 means SL is set 2.5x the average daily volatility away from entry.
+          </div>
+          <div>
+            <strong style="color:var(--color-text-primary);">Risk/Reward (RR):</strong> Ratio of potential profit to potential loss. A 2.0 RR means the Take Profit is twice as far as the Stop Loss.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </dialog>
 
 <script>
-async function autoOptimize() {
-  const btn = document.getElementById('btn-optimize');
-  const goal = document.getElementById('opt-goal').value;
-  btn.textContent = 'Optimizing...';
-  btn.style.opacity = '0.7';
-  
-  // Parse date range if set
-  const dateStr = document.getElementById('date-range').value;
-  let period1 = null, period2 = null;
-  if (dateStr && dateStr.includes(' to ')) {
-    const [d1, d2] = dateStr.split(' to ');
-    period1 = Math.floor(new Date(d1).getTime());
-    period2 = Math.floor(new Date(d2).getTime() + 86400000); // end of day
-  }
-  
-  try {
-    const res = await fetch('/api/optimize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2, goal })
-    });
-    const data = await res.json();
-    const optimalP = data.params;
-    const ai = data.aiProfile;
-    
-    if (data.error) throw new Error(data.error);
-    
-    Object.assign(P, optimalP);
-    
-    // Update sliders UI
-    document.querySelector('input[oninput*="emaF"]').value = P.emaF; document.getElementById('v-ef').textContent = P.emaF;
-    document.querySelector('input[oninput*="emaS"]').value = P.emaS; document.getElementById('v-es').textContent = P.emaS;
-    document.querySelector('input[oninput*="macdF"]').value = P.macdF; document.getElementById('v-mf').textContent = P.macdF;
-    document.querySelector('input[oninput*="macdS"]').value = P.macdS; document.getElementById('v-msd').textContent = P.macdS;
-    document.querySelector('input[oninput*="rsiL"]').value = P.rsiL; document.getElementById('v-rl').textContent = P.rsiL;
-    document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow; document.getElementById('v-rlw').textContent = P.rsiLow;
-    document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh; document.getElementById('v-rh').textContent = P.rsiHigh;
-    document.querySelector('input[oninput*="atrM"]').value = P.atrM; document.getElementById('v-am').textContent = P.atrM.toFixed(1);
-    document.querySelector('input[oninput*="rrR"]').value = P.rrR; document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
-    document.querySelector('input[oninput*="timeStop"]').value = P.timeStop; document.getElementById('v-ts').textContent = P.timeStop;
-    document.querySelector('input[oninput*="minS"]').value = P.minS; document.getElementById('v-ms-c').textContent = P.minS + '/5';
-    document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
-    document.querySelector('input[oninput*="volM"]').value = P.volM; document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
-    
-    // Show AI Profile
-    if (ai) {
-      document.getElementById('ai-profile').style.display = 'block';
-      document.getElementById('ai-name').textContent = ai.name;
-      document.getElementById('ai-desc').textContent = ai.desc;
-      document.getElementById('ai-wr').textContent = ai.expectedWr;
-      document.getElementById('ai-pf').textContent = ai.expectedPf;
-      if (ai.portfolio) {
-        document.getElementById('portfolio-recommendation').innerHTML = `💡 <strong>Recommended Combo:</strong> Trade ${ai.portfolio.symbols} together! Combined return: <strong>${ai.portfolio.totalProfit}%</strong> in this period.`;
-      }
-    }
-    
-    btn.textContent = '🧠 AI Optimized!';
-    setTimeout(() => { btn.textContent = '🧠 AI Optimize'; btn.style.opacity = '1'; }, 2000);
-    
-    fetchData(); // Fetch Data with new parameters
-  } catch(e) {
-    btn.textContent = 'Error';
-    console.error(e);
-    setTimeout(() => { btn.textContent = '🧠 AI Optimize'; btn.style.opacity = '1'; }, 2000);
-  }
-}
-
 function applyPreset(type) {
   if (type === 'scalping') {
-    P.emaF = 5; P.emaS = 13; P.macdF = 9; P.macdS = 21; P.rsiL = 14; P.rsiLow = 30; P.rsiHigh = 70; P.atrM = 1.5; P.rrR = 1.5; P.timeStop = 10;
+    P.emaF = 5; P.emaS = 13; P.macdF = 9; P.macdS = 21; P.rsiL = 14; P.rsiLow = 30; P.rsiHigh = 70; P.atrM = 1.5; P.rrR = 1.5; P.timeStop = 10; P.bbP = 10; P.bbStd = 1.5;
   } else if (type === 'swing') {
-    P.emaF = 20; P.emaS = 50; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 40; P.rsiHigh = 60; P.atrM = 2.5; P.rrR = 2.0; P.timeStop = 50;
+    P.emaF = 20; P.emaS = 50; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 40; P.rsiHigh = 60; P.atrM = 2.5; P.rrR = 2.0; P.timeStop = 50; P.bbP = 20; P.bbStd = 2.0;
   } else if (type === 'trend') {
-    P.emaF = 50; P.emaS = 100; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 35; P.rsiHigh = 65; P.atrM = 3.0; P.rrR = 3.0; P.timeStop = 100;
+    P.emaF = 50; P.emaS = 100; P.macdF = 12; P.macdS = 26; P.rsiL = 14; P.rsiLow = 35; P.rsiHigh = 65; P.atrM = 3.0; P.rrR = 3.0; P.timeStop = 100; P.bbP = 30; P.bbStd = 2.5;
   }
   
   const updates = [
     { id: 'v-ef', val: P.emaF }, { id: 'v-es', val: P.emaS },
     { id: 'v-mf', val: P.macdF }, { id: 'v-msd', val: P.macdS },
     { id: 'v-rl', val: P.rsiL }, { id: 'v-rlw', val: P.rsiLow }, { id: 'v-rh', val: P.rsiHigh },
-    { id: 'v-am', val: P.atrM }, { id: 'v-rr', val: P.rrR }, { id: 'v-ts', val: P.timeStop }
+    { id: 'v-am', val: P.atrM }, { id: 'v-rr', val: P.rrR }, { id: 'v-ts', val: P.timeStop },
+    { id: 'v-bbp', val: P.bbP }, { id: 'v-bbs', val: P.bbStd }
   ];
   
   updates.forEach(u => {
@@ -560,14 +514,14 @@ function formatSignal(raw, isShort) {
 }
 
 // --- SCREENER DATA ---
-const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH'};
+const P = {emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, bbP:20, bbStd:2.0, volM:0, direction:'BOTH'};
 let resultsIntraday = [], resultsShortTerm = [];
 let previousResults = {};
-let sortKey = 'netPct', sortAsc = false, activeSec = 'All', activeSig = 'ALL';
+let sortKey = 'netPct', sortAsc = false, activeSec = localStorage.getItem('trisig_activeSec') || 'All', activeSig = localStorage.getItem('trisig_activeSig') || 'ALL';
 let currentInterval = '15m';
 const TF_CONFIG = {
   '5m':  { range: '5d',  label: '5m Scalp' },
-  '15m': { range: '60d', label: '15m Intraday' },
+  '15m': { range: '30d', label: '15m Intraday' },
   '30m': { range: '30d', label: '30m Intraday' },
   '1h':  { range: '60d', label: '1H Swing Entry' },
   '1d':  { range: '5y',  label: 'Daily' },
@@ -656,21 +610,31 @@ function setTimeframe(tf) {
 
 
 
+let isDataFetching = false;
+let abortController = null;
+
 async function fetchData() {
+  if (isDataFetching) {
+    if (abortController) abortController.abort();
+  }
+  isDataFetching = true;
+  abortController = new AbortController();
+  const signal = abortController.signal;
+
   const btn = document.getElementById('run-btn');
   const sts = document.getElementById('status-text');
-  btn.disabled = true;
-  btn.textContent = 'Fetching...';
-  sts.textContent = 'Contacting Yahoo Finance...';
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = 'Fetching...';
+  if (sts) sts.textContent = 'Contacting Yahoo Finance...';
 
   // Progress bar animation
   const bar = document.getElementById('progress-bar');
-  bar.style.width = '0%';
-  bar.style.transition = 'width 0.3s ease';
+  if (bar) bar.style.width = '0%';
+  if (bar) bar.style.transition = 'width 0.3s ease';
   let prog = 0;
   const progTimer = setInterval(() => {
     prog = Math.min(prog + Math.random() * 8, 85);
-    bar.style.width = prog + '%';
+    if (bar) bar.style.width = prog + '%';
   }, 400);
   
   let period1 = null;
@@ -695,16 +659,43 @@ async function fetchData() {
     const p1 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params: P, market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2 })
+      body: JSON.stringify({ params: P, market: currentMarket, interval: currentInterval, range: TF_CONFIG[currentInterval].range, period1, period2 }),
+      signal
     }).then(r => r.ok ? r.json() : Promise.reject('API Error: ' + r.status));
     
+    // Small delay to avoid concurrent heavy requests
+    await new Promise(r => setTimeout(r, 200));
+
     const p2 = fetch('/api/screener', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ params: P, market: currentMarket, interval: '1d', range: '5y', period1, period2 })
+      body: JSON.stringify({ params: P, market: currentMarket, interval: '1d', range: '5y', period1, period2 }),
+      signal
     }).then(r => r.ok ? r.json() : Promise.reject('API Error: ' + r.status));
 
-    const [dataIntraday, dataShortTerm] = await Promise.all([p1, p2]);
+    const [dataIntraday, dataShortTermRaw] = await Promise.all([p1, p2]);
+    
+    // Handle server-side loading states gracefully
+    const dataShortTerm = Array.isArray(dataShortTermRaw) ? dataShortTermRaw : [];
+    const hasIntradayData = Array.isArray(dataIntraday) && dataIntraday.length > 0;
+    const hasShortTermData = Array.isArray(dataShortTermRaw) && dataShortTermRaw.length > 0;
+    
+    // If server says it's still loading, show a non-crashing message
+    if (!hasIntradayData || !hasShortTermData) {
+      if (!hasIntradayData) {
+        document.getElementById('tbl-body-intraday').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--color-text-secondary)"><span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle;"></span> <span style="margin-left:8px; vertical-align:middle;">Loading ${currentMarket === 'crypto' ? 'Crypto' : 'F&O'} data — please wait a moment...</span></td></tr>`;
+      }
+      if (!hasShortTermData) {
+        document.getElementById('tbl-body-shortterm').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:var(--color-text-secondary)"><span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid var(--color-primary); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle;"></span> <span style="margin-left:8px; vertical-align:middle;">Loading short-term data...</span></td></tr>`;
+      }
+      clearInterval(progTimer);
+      if (bar) bar.style.width = '0%';
+      if (sts) sts.textContent = '⏳ Server is pre-warming market data — please poll again in ~10 seconds.';
+      if (btn) btn.disabled = false;
+      if (btn) btn.textContent = 'Poll Real-Time';
+      isDataFetching = false;
+      return;
+    }
     
     // Store previous prices for flash animation and signals for toast detection
     window._prevPrices = window._prevPrices || {};
@@ -723,24 +714,24 @@ async function fetchData() {
     // Store previous prices and signals for highlighting
     resultsIntraday.forEach(r => { previousResults[r.s] = r.signal; });
     
-    resultsIntraday = Array.isArray(dataIntraday) ? dataIntraday : [];
-    resultsShortTerm = Array.isArray(dataShortTerm) ? dataShortTerm : [];
-    window._marketSwitching = false; // Data arrived, clear loading flag
+    resultsIntraday = dataIntraday;
+    resultsShortTerm = dataShortTerm;
+    window._marketSwitching = false;
     
     updateCards(resultsShortTerm); // Decoupled KPI updates
     
     // Complete progress bar
     clearInterval(progTimer);
-    bar.style.width = '100%';
-    setTimeout(() => { bar.style.width = '0%'; bar.style.transition = 'width 0s'; }, 600);
+    if (bar) bar.style.width = '100%';
+    setTimeout(() => { if (bar) { bar.style.width = '0%'; bar.style.transition = 'width 0s'; } }, 600);
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
-    sts.textContent = `✅ Updated: ${timeStr}`;
+    if (sts) sts.textContent = `✅ Updated: ${timeStr}`;
     
     // Update fetch counter
     fetchCount++;
-    document.getElementById('fetch-count').textContent = `(${fetchCount} polls)`;
+    if (document.getElementById('fetch-count')) document.getElementById('fetch-count').textContent = `(${fetchCount} polls)`;
 
     // Reset countdown
     resetCountdown();
@@ -748,10 +739,11 @@ async function fetchData() {
     sortAndRender();
     fetchNews();
   } catch (e) {
+    if (e.name === 'AbortError') return; // Ignore intentional aborts
     console.error(e);
     clearInterval(progTimer);
-    bar.style.width = '0%';
-    sts.textContent = '❌ Error connecting to backend.';
+    if (bar) bar.style.width = '0%';
+    if (sts) sts.textContent = '❌ Error connecting to backend.';
     if (resultsIntraday.length === 0) {
       document.getElementById('tbl-body-intraday').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:#f85149;">❌ Failed to load data. Please refresh.</td></tr>`;
       document.getElementById('tbl-body-shortterm').innerHTML = `<tr><td colspan="12" style="text-align:center; padding:20px; color:#f85149;">❌ Failed to load data. Please refresh.</td></tr>`;
@@ -760,10 +752,11 @@ async function fetchData() {
         if (el) el.textContent = '—';
       });
     }
+  } finally {
+    isDataFetching = false;
+    if (btn) btn.disabled = false;
+    if (btn) btn.textContent = 'Poll Real-Time';
   }
-  
-  btn.disabled = false;
-  btn.textContent = 'Poll Real-Time';
 }
 
 async function autoOptimize() {
@@ -795,20 +788,67 @@ async function autoOptimize() {
     
     Object.assign(P, optimalP);
     
+    // Update sliders UI
     window.updateSlidersUI = function() {
-      document.querySelector('input[oninput*="emaF"]').value = P.emaF; document.getElementById('v-ef').textContent = P.emaF;
-      document.querySelector('input[oninput*="emaS"]').value = P.emaS; document.getElementById('v-es').textContent = P.emaS;
-      document.querySelector('input[oninput*="macdF"]').value = P.macdF; document.getElementById('v-mf').textContent = P.macdF;
-      document.querySelector('input[oninput*="macdS"]').value = P.macdS; document.getElementById('v-msd').textContent = P.macdS;
-      document.querySelector('input[oninput*="rsiL"]').value = P.rsiL; document.getElementById('v-rl').textContent = P.rsiL;
-      document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow; document.getElementById('v-rlw').textContent = P.rsiLow;
-      document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh; document.getElementById('v-rh').textContent = P.rsiHigh;
-      document.querySelector('input[oninput*="atrM"]').value = P.atrM; document.getElementById('v-am').textContent = P.atrM.toFixed(1);
-      document.querySelector('input[oninput*="rrR"]').value = P.rrR; document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
-      document.querySelector('input[oninput*="timeStop"]').value = P.timeStop; document.getElementById('v-ts').textContent = P.timeStop;
-      document.querySelector('input[oninput*="minS"]').value = P.minS; document.getElementById('v-ms-c').textContent = P.minS + '/5';
-      document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
-      document.querySelector('input[oninput*="volM"]').value = P.volM; document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
+      if (document.querySelector('input[oninput*="emaF"]')) {
+        document.querySelector('input[oninput*="emaF"]').value = P.emaF;
+        if (document.getElementById('v-ef')) document.getElementById('v-ef').textContent = P.emaF;
+      }
+      if (document.querySelector('input[oninput*="emaS"]')) {
+        document.querySelector('input[oninput*="emaS"]').value = P.emaS;
+        if (document.getElementById('v-es')) document.getElementById('v-es').textContent = P.emaS;
+      }
+      if (document.querySelector('input[oninput*="macdF"]')) {
+        document.querySelector('input[oninput*="macdF"]').value = P.macdF;
+        if (document.getElementById('v-mf')) document.getElementById('v-mf').textContent = P.macdF;
+      }
+      if (document.querySelector('input[oninput*="macdS"]')) {
+        document.querySelector('input[oninput*="macdS"]').value = P.macdS;
+        if (document.getElementById('v-msd')) document.getElementById('v-msd').textContent = P.macdS;
+      }
+      if (document.querySelector('input[oninput*="rsiL"]')) {
+        document.querySelector('input[oninput*="rsiL"]').value = P.rsiL;
+        if (document.getElementById('v-rl')) document.getElementById('v-rl').textContent = P.rsiL;
+      }
+      if (document.querySelector('input[oninput*="rsiLow"]')) {
+        document.querySelector('input[oninput*="rsiLow"]').value = P.rsiLow;
+        if (document.getElementById('v-rlw')) document.getElementById('v-rlw').textContent = P.rsiLow;
+      }
+      if (document.querySelector('input[oninput*="rsiHigh"]')) {
+        document.querySelector('input[oninput*="rsiHigh"]').value = P.rsiHigh;
+        if (document.getElementById('v-rh')) document.getElementById('v-rh').textContent = P.rsiHigh;
+      }
+      if (document.querySelector('input[oninput*="atrM"]')) {
+        document.querySelector('input[oninput*="atrM"]').value = P.atrM;
+        if (document.getElementById('v-am')) document.getElementById('v-am').textContent = P.atrM.toFixed(1);
+      }
+      if (document.querySelector('input[oninput*="rrR"]')) {
+        document.querySelector('input[oninput*="rrR"]').value = P.rrR;
+        if (document.getElementById('v-rr')) document.getElementById('v-rr').textContent = P.rrR.toFixed(1);
+      }
+      if (document.querySelector('input[oninput*="timeStop"]')) {
+        document.querySelector('input[oninput*="timeStop"]').value = P.timeStop;
+        if (document.getElementById('v-ts')) document.getElementById('v-ts').textContent = P.timeStop;
+      }
+      if (document.querySelector('input[oninput*="minS"]')) {
+        document.querySelector('input[oninput*="minS"]').value = P.minS;
+        if (document.getElementById('v-ms-c')) document.getElementById('v-ms-c').textContent = P.minS + '/5';
+      }
+      if (document.querySelector('select[onchange*="bbMode"]')) {
+        document.querySelector('select[onchange*="bbMode"]').value = P.bbMode;
+      }
+      if (document.querySelector('input[oninput*="bbP"]')) {
+        document.querySelector('input[oninput*="bbP"]').value = P.bbP;
+        if (document.getElementById('v-bbp')) document.getElementById('v-bbp').textContent = P.bbP;
+      }
+      if (document.querySelector('input[oninput*="bbStd"]')) {
+        document.querySelector('input[oninput*="bbStd"]').value = P.bbStd;
+        if (document.getElementById('v-bbs')) document.getElementById('v-bbs').textContent = P.bbStd.toFixed(1);
+      }
+      if (document.querySelector('input[oninput*="volM"]')) {
+        document.querySelector('input[oninput*="volM"]').value = P.volM;
+        if (document.getElementById('v-vol')) document.getElementById('v-vol').textContent = P.volM > 0 ? P.volM + 'x Avg' : 'Off';
+      }
     };
     
     updateSlidersUI();
@@ -886,7 +926,7 @@ function sortAndRender(){
     r.estMoProfit = startAmount * ((r.netPct / 2) / 100);
   });
   dataShortTerm.forEach(r => {
-    r.estMoProfit = startAmount * ((r.netPct / 60) / 100);
+    r.estMoProfit = startAmount * ((r.netPct / 2) / 100);
   });
   
   const sortFn = (a, b) => {
@@ -1047,18 +1087,28 @@ function buildRowHTML(r) {
   else if (sentiment === 'Bearish') sentimentHTML = ' <span title="Bearish Sentiment">🐻</span>';
 
   return `<tr class="tr-row${isDim ? ' row-dim' : ''}" data-sym="${r.s}" onclick="openTradesModal('${r.s}')">
-    <td class="hide-mobile" style="color:var(--color-text-tertiary)">${r.rank}</td>
-    <td style="font-weight:500; white-space:nowrap;">${r.s}${sentimentHTML} <span onclick="event.stopPropagation(); const amt=(document.getElementById('start-amount')?.value||10000); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}&amount='+amt,'_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:10px; background:rgba(88,166,255,0.12); color:#58a6ff; border:1px solid rgba(88,166,255,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;">🔬</span></td>
-    <td class="hide-mobile"><span class="sbadge">${r.sec}</span></td>
-    <td class="${priceCls}" style="font-weight:500">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
-    <td style="white-space:normal;line-height:1.5;padding:8px;">${sigHTML}</td>
-    <td class="hide-mobile" style="color:var(--color-text-secondary)">${r.trades}</td>
-    <td class="${wrCls}">${r.winRate}%</td>
-    <td class="${pfCls}" style="font-weight:500">${r.pf}</td>
-    <td class="${netCls} hide-mobile">${r.netPct>=0?'+':''}${r.netPct}%</td>
-    <td class="${netCls} hide-mobile">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
-    <td class="hide-mobile" style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}">${r.maxDD}%</td>
-    <td><span class="badge b${r.grade}">${r.grade}</span></td>
+    <td class="hide-mobile" style="color:var(--color-text-tertiary); vertical-align:middle; text-align:center;">${r.rank}</td>
+    <td style="vertical-align:middle; padding:8px 12px; border-right: 1px solid var(--color-border-tertiary);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="min-width:0; flex:1;">
+          <div style="font-weight:700; font-size:14px; color:var(--color-text-primary); display:flex; align-items:center; letter-spacing:0.02em;">
+            ${r.s}${sentimentHTML}
+          </div>
+          <div style="font-size:11px; color:var(--color-text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; font-weight:400;" title="${r.n}">${r.n}</div>
+        </div>
+        <button onclick="event.stopPropagation(); const amt=(document.getElementById('start-amount')?.value||10000); window.open('/deep-analysis.html?symbol='+encodeURIComponent('${r.s}')+'&market=${currentMarket}&amount='+amt,'_blank')" title="Deep Analysis — all timeframes" style="cursor:pointer; font-size:12px; background:rgba(88,166,255,0.1); color:#58a6ff; border:1px solid rgba(88,166,255,0.2); border-radius:6px; padding:4px 8px; transition:all 0.2s ease; display:flex; align-items:center; justify-content:center;">🔬</button>
+      </div>
+    </td>
+    <td class="hide-mobile" style="vertical-align:middle; text-align:center;"><span class="sbadge">${r.sec}</span></td>
+    <td class="${priceCls}" style="font-weight:600; vertical-align:middle; text-align:right; font-family:'Roboto Mono', monospace; font-size:13px;">${r.p ? formatCurrency(r.p) : '—'}${chgArrow}</td>
+    <td style="white-space:normal; line-height:1.4; padding:10px 12px; vertical-align:middle; border-left: 1px solid var(--color-border-tertiary); min-width:220px;">${sigHTML}</td>
+    <td class="hide-mobile" style="color:var(--color-text-secondary); vertical-align:middle; text-align:center; font-weight:500;">${r.trades}</td>
+    <td class="${wrCls}" style="vertical-align:middle; text-align:center; font-weight:600;">${r.winRate}%</td>
+    <td class="${pfCls}" style="font-weight:600; vertical-align:middle; text-align:center; font-family:'Roboto Mono', monospace;">${r.pf}</td>
+    <td class="${netCls} hide-mobile" style="vertical-align:middle; text-align:right; font-weight:600;">${r.netPct>=0?'+':''}${r.netPct}%</td>
+    <td class="${netCls} hide-mobile" style="vertical-align:middle; text-align:right; font-weight:600; font-family:'Roboto Mono', monospace;">${r.estMoProfit>=0?'+':''}${formatCurrency(r.estMoProfit)}</td>
+    <td class="hide-mobile" style="color:${r.maxDD>20?'#F85149':r.maxDD>10?'#D29922':'var(--color-text-secondary)'}; vertical-align:middle; text-align:center; font-weight:500;">${r.maxDD}%</td>
+    <td style="vertical-align:middle; text-align:center;"><span class="badge b${r.grade}">${r.grade}</span></td>
   </tr>`;
 }
 
@@ -1356,13 +1406,14 @@ function buildSectorFilters(allResults){
 
 function setSec(s){
   activeSec=s;
+  localStorage.setItem('trisig_activeSec', s);
   document.querySelectorAll('#sect-filters .fpill').forEach(b=>b.classList.toggle('on',b.textContent===s));
   sortAndRender();
 }
 
 function setSignalFilter(f) {
   activeSig = f;
-  // Update button states
+  localStorage.setItem('trisig_activeSig', f);
   document.getElementById('btn-all-sig').className  = 'fpill' + (f === 'ALL'     ? ' on' : '');
   document.getElementById('btn-act-sig').className  = 'fpill' + (f === 'ACTIVE'  ? ' on' : '');
   document.getElementById('btn-qual-sig').className = 'fpill' + (f === 'QUALITY' ? ' quality-on' : '');
@@ -1392,11 +1443,29 @@ function checkTunerWarnings() {
 function schedule(){
   checkTunerWarnings();
   clearTimeout(schedTimer);
-  schedTimer=setTimeout(fetchData, 600);
+  schedTimer=setTimeout(() => {
+    if (!isDataFetching) fetchData();
+  }, 600);
 }
 
-// Auto poll every 30 seconds
-setInterval(fetchData, 30000);
+// Restore saved filter state on load
+document.addEventListener('DOMContentLoaded', () => {
+  if (activeSig === 'ACTIVE') {
+    document.getElementById('btn-act-sig').className = 'fpill on';
+    document.getElementById('btn-all-sig').className = 'fpill';
+    document.getElementById('btn-qual-sig').className = 'fpill';
+  } else if (activeSig === 'QUALITY') {
+    document.getElementById('btn-qual-sig').className = 'fpill quality-on';
+    document.getElementById('btn-all-sig').className = 'fpill';
+    document.getElementById('btn-act-sig').className = 'fpill';
+  }
+  setSignalFilter(activeSig); // sync UI
+});
+
+// Auto poll every 30 seconds — only if not already fetching
+setInterval(() => {
+  if (!isDataFetching) fetchData();
+}, 30000);
 
 // Initial empty table
 renderTable([], 'tbl-body-intraday');
@@ -1419,37 +1488,16 @@ renderTable([], 'tbl-body-shortterm');
     }
   });
 // --- NEWS SENTIMENT FETCHING ---
-window.stockSentiment = {}; // Global store for sentiment
+window.stockSentiment = JSON.parse(localStorage.getItem('trisig_sentiment') || '{}'); // Load persisted, start empty if none
 
 async function fetchNews() {
   const panel = document.getElementById('news-panel');
-  
-  if (currentMarket !== 'crypto') {
-    const now = new Date();
-    // Get IST time
-    const istTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-    const day = istTime.getDay();
-    const hour = istTime.getHours();
-    const min = istTime.getMinutes();
-    const timeVal = hour + min/60;
-    
-    // Market is open M-F, 09:15 to 15:30
-    const isWeekend = day === 0 || day === 6;
-    const isMarketOpen = !isWeekend && timeVal >= 9.25 && timeVal <= 15.5;
-    
-    if (!isMarketOpen) {
-      if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Market is closed (09:15–15:30 IST).</div>';
-      return;
-    }
-  }
-
   if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">Analyzing live sentiment...</div>';
   
-  // Get top 5 assets by PF to check sentiment (expanded from 3 since it's faster now)
   const sorted = [...resultsIntraday, ...resultsShortTerm].sort((a,b) => b.pf - a.pf).filter(r => r.trades > 0);
-  let top = sorted.slice(0, 5).map(r => r.s);
+  let top = sorted.slice(0, 10).map(r => r.s);
   if (!top.length) {
-    top = currentMarket === 'crypto' ? ['BTC-USD', 'ETH-USD'] : ['RELIANCE', 'TCS'];
+    top = currentMarket === 'crypto' ? ['BTC-USD', 'ETH-USD', 'SOL-USD'] : ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
   }
   
   try {
@@ -1460,30 +1508,25 @@ async function fetchNews() {
     });
     const news = await res.json();
     
-    // Clear old sentiment
-    window.stockSentiment = {};
-    
     if (!news || news.length === 0) {
       if (panel) panel.innerHTML = '<div style="color:var(--color-text-tertiary); font-size:12px;">No recent news impact found.</div>';
       return;
     }
     
-    // Extract impact per stock
     news.forEach(n => {
       const ticker = n.ticker.replace('.NS','');
-      // Keep the strongest sentiment if multiple news items
       if (!window.stockSentiment[ticker] || window.stockSentiment[ticker] === 'Neutral') {
         window.stockSentiment[ticker] = n.impact;
       }
     });
     
+    localStorage.setItem('trisig_sentiment', JSON.stringify(window.stockSentiment));
+    
     if (panel) {
       panel.innerHTML = `<div style="color:var(--color-text-tertiary); font-size:12px;">Live sentiment applied to ${Object.keys(window.stockSentiment).length} active stocks.</div>`;
     }
     
-    // Trigger a re-render to show the emojis!
     sortAndRender();
-    
   } catch (err) {
     console.error(err);
     if (panel) panel.innerHTML = '<div style="color:#f85149; font-size:12px;">Sentiment unavailable.</div>';

@@ -40,9 +40,7 @@ const STOCKS = [
   {s:'WIPRO', n:'Wipro', sec:'IT'},
   {s:'HCLTECH', n:'HCL Technologies', sec:'IT'},
   {s:'TECHM', n:'Tech Mahindra', sec:'IT'},
-  {s:'LTIM', ys:'LTIM.NS', n:'LTIMindtree', sec:'IT'},
   {s:'MARUTI', n:'Maruti Suzuki', sec:'Auto'},
-  {s:'TATAMOTORS', ys:'TMCV.NS', n:'Tata Motors', sec:'Auto'},
   {s:'M&M', n:'Mahindra & Mahindra', sec:'Auto'},
   {s:'HEROMOTOCO', n:'Hero MotoCorp', sec:'Auto'},
   {s:'EICHERMOT', n:'Eicher Motors', sec:'Auto'},
@@ -72,7 +70,6 @@ const STOCKS = [
   {s:'HDFCLIFE', n:'HDFC Life Insurance', sec:'Insurance'},
   
   // Expanded F&O Coverage (High Volume / Liquidity)
-  {s:'ZOMATO', ys:'ETERNAL.NS', n:'Zomato (Eternal)', sec:'Consumer'},
   {s:'HAL', n:'Hindustan Aeronautics', sec:'Defense'},
   {s:'BEL', n:'Bharat Electronics', sec:'Defense'},
   {s:'BDL', n:'Bharat Dynamics', sec:'Defense'},
@@ -111,7 +108,6 @@ const STOCKS = [
   {s:'MUTHOOTFIN', n:'Muthoot Finance', sec:'NBFC'},
   {s:'MANAPPURAM', n:'Manappuram Finance', sec:'NBFC'},
   {s:'M&MFIN', n:'M&M Financial', sec:'NBFC'},
-  {s:'L&TFH', ys:'LTF.NS', n:'L&T Finance', sec:'NBFC'},
   {s:'LICHSGFIN', n:'LIC Housing', sec:'NBFC'},
   {s:'RECLTD', n:'REC Ltd', sec:'Power'},
   {s:'PFC', n:'Power Finance Corp', sec:'Power'},
@@ -138,7 +134,6 @@ const STOCKS = [
   {s:'MARICO', n:'Marico', sec:'FMCG'},
   {s:'COLPAL', n:'Colgate Palmolive', sec:'FMCG'},
   {s:'UBL', n:'United Breweries', sec:'FMCG'},
-  {s:'MCDOWELL-N', ys:'UNITDSPR.NS', n:'United Spirits', sec:'FMCG'},
   {s:'BALRAMCHIN', n:'Balrampur Chini', sec:'FMCG'},
   {s:'TVSMOTOR', n:'TVS Motor', sec:'Auto'},
   {s:'ASHOKLEY', n:'Ashok Leyland', sec:'Auto'},
@@ -284,8 +279,8 @@ function calcBB(px, p, std) {
 }
 
 function backtest(px, ts, vl, params) {
-  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, volM=0, direction='BOTH', interval='15m' } = params;
-  if (!px || px.length < Math.max(emaS + 5, 35)) {
+  const { emaF, emaS, atrM, rrR, minS, rsiL=14, rsiLow=35, rsiHigh=65, macdF=12, macdS=26, timeStop=25, bbMode=0, bbP=20, bbStd=2.0, volM=0, direction='BOTH', interval='15m' } = params;
+  if (!px || px.length < Math.max(emaS + 5, 35, bbP)) {
     return { trades: 0, wins: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0, signal: 'FLAT', signalDetails: '', tradeDetails: [] };
   }
   const N = px.length;
@@ -293,7 +288,7 @@ function backtest(px, ts, vl, params) {
   const rsi = calcRSI(px, rsiL);
   const { ml, sl } = calcMACD(px, macdF, macdS, 9);
   const atr = calcATR(px, 14);
-  const { up: bbUp, low: bbLow } = calcBB(px, 20, 2.0);
+  const { up: bbUp, low: bbLow } = calcBB(px, bbP, bbStd);
   const volSma = calcSMA(vl, 20);
   let trades = [];
   let tradeDir = 0, entry = 0, stpl = 0, tp = 0, eb = 0;
@@ -498,81 +493,87 @@ function getGrade(r) {
 
 // Store RAW prices
 const rawCache = {};
-const isFetching = {};
-const lastFetchTime = {}; // Bug 5 Fix: Prevent spamming Yahoo
-
-// Removed deprecated fetchWithRetry function
+const fetchPromises = {}; // Store ongoing fetch promises to avoid duplicate requests
+const lastFetchTime = {}; // Prevent spamming Yahoo
 
 async function fetchRealtimeData(market, interval, range, period1, period2) {
   const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
-  if (isFetching[cacheKey]) return;
+  
+  // If a fetch is already in progress, return the existing promise
+  if (fetchPromises[cacheKey]) return fetchPromises[cacheKey];
 
-  // Bug 5 Fix: Don't fetch if data is less than 10 seconds old
+  // Don't fetch if data is less than 10 seconds old
   const now = Date.now();
   if (lastFetchTime[cacheKey] && (now - lastFetchTime[cacheKey] < 10000)) {
     return;
   }
 
-  isFetching[cacheKey] = true;
-  console.log(`Fetching raw Yahoo Finance data for ${cacheKey}...`);
-  
-  try {
-    const newRawData = [];
-    const list = market === 'crypto' ? CRYPTO : STOCKS;
-    const chunkSize = 40; // Maximize chunk size for ultra-fast fetching
-    for (let i = 0; i < list.length; i += chunkSize) {
-      const chunk = list.slice(i, i + chunkSize);
-      const promises = chunk.map(async (st) => {
-        try {
-          let symbol = market === 'crypto' ? st.s : (st.ys ? st.ys : `${st.s}.NS`);
-          
-          let queryOptions = { interval: interval };
-          if (period1 && period2) {
-            queryOptions.period1 = new Date(period1 * 1000);
-            queryOptions.period2 = new Date(period2 * 1000);
-          } else {
-            // Convert range to period1
-            const d = new Date();
-            if (range === '60d') d.setDate(d.getDate() - 58); // Yahoo strict: must be < 60 days
-            else if (range === '30d') d.setDate(d.getDate() - 28);
-            else if (range === '5y') d.setFullYear(d.getFullYear() - 5);
-            else d.setDate(d.getDate() - 18); // fallback '20d'
-            queryOptions.period1 = d;
-          }
-
-          const chart = await yahooFinance.chart(symbol, queryOptions);
-          if (!chart || !chart.quotes || chart.quotes.length === 0) throw new Error('No data');
-          
-          const px = [], ts = [], vl = [];
-          for (const q of chart.quotes) {
-            if (q.close !== null && q.close !== undefined) {
-              px.push(q.close);
-              ts.push(q.date.getTime());
-              vl.push(q.volume || 0);
+  const fetchTask = (async () => {
+    console.log(`Fetching raw Yahoo Finance data for ${cacheKey}...`);
+    try {
+      const newRawData = [];
+      const list = market === 'crypto' ? CRYPTO : STOCKS;
+      const chunkSize = 10; // Reduced chunk size to avoid overloading connection pool
+      for (let i = 0; i < list.length; i += chunkSize) {
+        const chunk = list.slice(i, i + chunkSize);
+        const promises = chunk.map(async (st) => {
+          try {
+            let symbol = market === 'crypto' ? st.s : (st.ys ? st.ys : `${st.s}.NS`);
+            
+            let queryOptions = { interval: interval };
+            if (period1 && period2) {
+              queryOptions.period1 = new Date(period1 * 1000);
+              queryOptions.period2 = new Date(period2 * 1000);
+            } else {
+              const d = new Date();
+              // More conservative ranges for intraday data
+              if (range === '60d') {
+                if (['1m', '2m', '5m', '15m'].includes(interval)) d.setDate(d.getDate() - 28); // Max 30d for small intervals
+                else d.setDate(d.getDate() - 58);
+              }
+              else if (range === '30d') d.setDate(d.getDate() - 28);
+              else if (range === '5y') d.setFullYear(d.getFullYear() - 5);
+              else d.setDate(d.getDate() - 18);
+              queryOptions.period1 = d;
             }
-          }
-          
-          let priceStr = px.length > 0 ? px[px.length - 1].toFixed(market === 'crypto' && px[px.length - 1] < 10 ? 4 : 2) : 0;
-          return { st, px, ts, vl, priceStr };
-        } catch (err) {
-          console.error(`Failed ${st.s} (${interval}):`, err.message);
-          const old = rawCache[cacheKey] ? rawCache[cacheKey].find(x => x.st.s === st.s) : null;
-          if (old) return old;
-          return { st, px: [], ts: [], vl: [], priceStr: 0 };
-        }
-      });
 
-      const results = await Promise.all(promises);
-      newRawData.push(...results);
-      await new Promise(r => setTimeout(r, 50)); // 50ms micro-breather
+            const chart = await yahooFinance.chart(symbol, queryOptions);
+            if (!chart || !chart.quotes || chart.quotes.length === 0) throw new Error('No data');
+            
+            const px = [], ts = [], vl = [];
+            for (const q of chart.quotes) {
+              if (q.close !== null && q.close !== undefined) {
+                px.push(q.close);
+                ts.push(q.date.getTime());
+                vl.push(q.volume || 0);
+              }
+            }
+            
+            let priceStr = px.length > 0 ? px[px.length - 1].toFixed(market === 'crypto' && px[px.length - 1] < 10 ? 4 : 2) : 0;
+            return { st, px, ts, vl, priceStr };
+          } catch (err) {
+            console.error(`Failed ${st.s} (${interval}):`, err.message);
+            const old = rawCache[cacheKey] ? rawCache[cacheKey].find(x => x.st.s === st.s) : null;
+            if (old) return old;
+            return { st, px: [], ts: [], vl: [], priceStr: 0 };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        newRawData.push(...results);
+        await new Promise(r => setTimeout(r, 200)); // Larger breather between chunks
+      }
+    
+      rawCache[cacheKey] = newRawData;
+      lastFetchTime[cacheKey] = Date.now();
+      console.log(`Raw fetch complete for ${cacheKey}.`);
+    } finally {
+      delete fetchPromises[cacheKey];
     }
-  
-    rawCache[cacheKey] = newRawData;
-    lastFetchTime[cacheKey] = Date.now(); // Update last fetch time
-    console.log(`Raw fetch complete for ${cacheKey}.`);
-  } finally {
-    isFetching[cacheKey] = false; // Always release lock
-  }
+  })();
+
+  fetchPromises[cacheKey] = fetchTask;
+  return fetchTask;
 }
 
 
@@ -614,8 +615,7 @@ function computeResults(cacheKey, params) {
 
 app.post('/api/screener', express.json(), async (req, res) => {
   try {
-    // Refined default params — tighter entries, better R:R
-    const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, volM: 0 };
+    const params = req.body.params || { emaF: 9, emaS: 21, atrM: 1.8, rrR: 2.5, minS: 3, rsiL: 14, rsiLow: 40, rsiHigh: 60, macdF: 12, macdS: 26, timeStop: 20, bbMode: 0, bbP: 20, bbStd: 2.0, volM: 0 };
     const market = req.body.market || 'nifty';
     const interval = req.body.interval || '15m';
     const range = req.body.range || '20d';
@@ -623,16 +623,25 @@ app.post('/api/screener', express.json(), async (req, res) => {
     const period2 = req.body.period2 || null;
     const cacheKey = `${market}_${interval}_${range}_${period1}_${period2}`;
     
+    // Initialize cache slot if missing
     if (!rawCache[cacheKey]) rawCache[cacheKey] = [];
     
-    if (rawCache[cacheKey].length === 0 && !isFetching[cacheKey]) {
-      await fetchRealtimeData(market, interval, range, period1, period2);
+    const hasData = rawCache[cacheKey].length > 0;
+    const isFetching = !!fetchPromises[cacheKey];
+    
+    if (hasData) {
+      // Data available — respond immediately, refresh in background
       res.json(computeResults(cacheKey, params));
-    } else if (!isFetching[cacheKey]) {
-      res.json(computeResults(cacheKey, params));
-      fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error(e));
+      if (!isFetching) {
+        fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error('Background refresh failed:', e.message));
+      }
+    } else if (isFetching) {
+      // Fetch in progress but no data yet — respond with empty + indicator
+      res.json({ loading: true, message: 'Fetching data, please wait...', results: [] });
     } else {
-      res.json(computeResults(cacheKey, params));
+      // No data and not fetching — start fetch, respond with empty
+      fetchRealtimeData(market, interval, range, period1, period2).catch(e => console.error('Fetch failed:', e.message));
+      res.json({ loading: true, message: 'Initiating fetch, please poll again in a few seconds...', results: [] });
     }
   } catch (err) {
     console.error('Screener API Error:', err.message);
@@ -654,18 +663,31 @@ app.post('/api/optimize', express.json(), async (req, res) => {
   }
 
   const rawData = rawCache[cacheKey];
+  const validAssets = rawData.filter(x => x.px.length >= 30);
+  
+  if (validAssets.length === 0) {
+    return res.status(400).json({ error: 'Insufficient data for optimization. Try a longer date range.' });
+  }
 
-  const emaFs = [5, 9, 15];
-  const emaSs = [21, 34];
-  const atrMs = [1.5, 2.5];
-  const rrRs = [1.5, 2.0];
-  const bbModes = [0, 1]; // 0: Disabled, 1: Breakout
-  const volMs = [0, 1.5]; // 0: Disabled, 1.5: Surge
+  const emaFs = [5, 9, 12, 15, 20];
+  const emaSs = [21, 26, 34, 50];
+  const atrMs = [1.5, 2.0, 2.5, 3.0];
+  const rrRs = [1.5, 2.0, 2.5, 3.0];
+  const bbModes = [0, 1, 2];
+  const bbPs = [10, 20, 30];
+  const bbStds = [1.5, 2.0, 2.5];
+  const volMs = [0, 1.0, 1.5, 2.0];
+  const rsiLows = [30, 35, 40];
+  const rsiHighs = [55, 60, 65];
+  const minSs = [2, 3];
   
   let bestParams = null;
   let bestScore = -999999;
   let bestProfile = { wr: 0, pf: 0 };
   const topResults = [];
+  
+  const START = Date.now();
+  let iterations = 0;
   
   for (const emaF of emaFs) {
     for (const emaS of emaSs) {
@@ -673,49 +695,59 @@ app.post('/api/optimize', express.json(), async (req, res) => {
       for (const atrM of atrMs) {
         for (const rrR of rrRs) {
           for (const bbMode of bbModes) {
-            for (const volM of volMs) {
-              const params = { emaF, emaS, atrM, rrR, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode, volM };
-              
-              let totalPF = 0, totalWR = 0, validAssets = 0, sumTrades = 0, totalNetPct = 0;
-              const assetNetPcts = [];
-              for (const item of rawData) {
-                const r = backtest(item.px, item.ts, item.vl, {...params, interval});
-                if (r.trades > 0) {
-                  totalPF += r.pf;
-                  totalWR += r.winRate;
-                  sumTrades += r.trades;
-                  totalNetPct += r.netPct;
-                  assetNetPcts.push({ s: item.st.s, netPct: r.netPct });
-                  validAssets++;
+            for (const bbP of bbPs) {
+              for (const bbStd of bbStds) {
+                for (const volM of volMs) {
+                  for (const rsiLow of rsiLows) {
+                    for (const rsiHigh of rsiHighs) {
+                      for (const minS of minSs) {
+                        const params = { emaF, emaS, atrM, rrR, minS, rsiL: 14, rsiLow, rsiHigh, macdF: 12, macdS: 26, timeStop: 25, bbMode, bbP, bbStd, volM };
+                        
+                        let totalPF = 0, totalWR = 0, validCount = 0, sumTrades = 0, totalNetPct = 0;
+                        const assetNetPcts = [];
+                        for (const item of validAssets) {
+                          const r = backtest(item.px, item.ts, item.vl, {...params, interval});
+                          if (r.trades > 0) {
+                            totalPF += r.pf;
+                            totalWR += r.winRate;
+                            sumTrades += r.trades;
+                            totalNetPct += r.netPct;
+                            assetNetPcts.push({ s: item.st.s, netPct: r.netPct, pf: r.pf, wr: r.winRate });
+                            validCount++;
+                          }
+                        }
+                        
+                        if (validCount === 0) continue;
+                        iterations++;
+                        const avgPF = totalPF / validCount;
+                        const avgWR = totalWR / validCount;
+                        const avgTrades = sumTrades / validCount;
+                        const avgNetPct = totalNetPct / validCount;
+                        
+                        let score = -1;
+                        if (goal === 'max_pf') score = avgPF;
+                        else if (goal === 'max_wr') score = avgWR;
+                        else if (goal === 'balanced') score = avgPF * (avgWR / 100);
+                        else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
+                        else if (goal === 'double_capital') {
+                          assetNetPcts.sort((a, b) => b.netPct - a.netPct);
+                          score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val.netPct, 0);
+                        }
+                        
+                        assetNetPcts.sort((a, b) => b.netPct - a.netPct);
+                        const top3Stocks = assetNetPcts.slice(0, 3).map(x => x.s);
+                        
+                        topResults.push({ score, params, profile: { wr: avgWR, pf: avgPF }, top3Stocks });
+                        
+                        if (score > bestScore) {
+                          bestScore = score;
+                          bestParams = params;
+                          bestProfile = { wr: avgWR, pf: avgPF };
+                        }
+                      }
+                    }
+                  }
                 }
-              }
-              
-              if (validAssets === 0) continue;
-              const avgPF = totalPF / validAssets;
-              const avgWR = totalWR / validAssets;
-              const avgTrades = sumTrades / validAssets;
-              const avgNetPct = totalNetPct / validAssets;
-              
-              let score = -1;
-              if (goal === 'max_pf') score = avgPF;
-              else if (goal === 'max_wr') score = avgWR;
-              else if (goal === 'balanced') score = avgPF * (avgWR / 100);
-              else if (goal === 'max_trades') score = avgTrades * (avgPF > 1.2 ? 1 : 0.01);
-              else if (goal === 'double_capital') {
-                assetNetPcts.sort((a, b) => b.netPct - a.netPct);
-                // Score based on the sum of top 3 assets (portfolio combination)
-                score = assetNetPcts.slice(0, 3).reduce((sum, val) => sum + val.netPct, 0);
-              }
-              
-              assetNetPcts.sort((a, b) => b.netPct - a.netPct);
-              const top3Stocks = assetNetPcts.slice(0, 3).map(x => x.s);
-              
-              topResults.push({ score, params, profile: { wr: avgWR, pf: avgPF }, top3Stocks });
-              
-              if (score > bestScore) {
-                bestScore = score;
-                bestParams = params;
-                bestProfile = { wr: avgWR, pf: avgPF };
               }
             }
           }
@@ -723,6 +755,8 @@ app.post('/api/optimize', express.json(), async (req, res) => {
       }
     }
   }
+  
+  const elapsed = ((Date.now() - START) / 1000).toFixed(1);
 
   // Sort and filter for unique combinations of top 3 stocks
   topResults.sort((a, b) => b.score - a.score);
@@ -741,7 +775,7 @@ app.post('/api/optimize', express.json(), async (req, res) => {
   let optimized = true;
   if (!bestParams) {
     optimized = false;
-    bestParams = { emaF: 9, emaS: 21, atrM: 2.0, rrR: 2.0, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode: 0, volM: 0 };
+    bestParams = { emaF: 9, emaS: 21, atrM: 2.0, rrR: 2.0, minS: 2, rsiL: 14, rsiLow: 35, rsiHigh: 65, macdF: 12, macdS: 26, timeStop: 25, bbMode: 0, bbP: 20, bbStd: 2.0, volM: 0 };
   }
 
   let name = 'General Momentum';
@@ -766,7 +800,13 @@ app.post('/api/optimize', express.json(), async (req, res) => {
       params: r.params,
       stocks: r.top3Stocks,
       score: r.score.toFixed(1)
-    }))
+    })),
+    meta: {
+      iterations,
+      elapsed: elapsed + 's',
+      assetsTested: validAssets.length,
+      totalCombinations: iterations
+    }
   });
 });
 
@@ -825,64 +865,82 @@ app.post('/api/news', express.json(), async (req, res) => {
 app.post('/api/deep-analysis', express.json(), async (req, res) => {
   try {
     const { symbol, market } = req.body;
-    const params = req.body.params || { emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, volM:0, direction:'BOTH' };
-    const yahooSymbol = market === 'crypto' ? symbol : (symbol.includes('.') ? symbol : `${symbol}.NS`);
+    const params = req.body.params || { emaF:15, emaS:34, atrM:2.5, rrR:2.0, minS:3, rsiL:14, rsiLow:35, rsiHigh:65, macdF:12, macdS:26, timeStop:25, bbMode:0, bbP:20, bbStd:2.0, volM:0, direction:'BOTH' };
+
+    const stock = (market === 'crypto' ? CRYPTO : STOCKS).find(s => s.s === symbol);
+    if (!stock) return res.status(404).json({ error: 'Symbol not found' });
+    const yahooSymbol = market === 'crypto' ? symbol : (stock.ys || `${symbol}.NS`);
 
     const timeframes = [
-      { interval: '5m',  days: 7,  label: '5 Min Scalp',         cat: 'intraday' },
-      { interval: '15m', days: 60, label: '15 Min Intraday',      cat: 'intraday' },
-      { interval: '30m', days: 60, label: '30 Min Intraday',      cat: 'intraday' },
-      { interval: '1h',  days: 60, label: '1 Hour Swing Entry',   cat: 'intraday' },
+      { interval: '15m', days: 28, label: '15 Min Intraday',     cat: 'intraday' },
+      { interval: '1h',  days: 58, label: '1 Hour Swing Entry',   cat: 'intraday' },
       { interval: '1d',  years: 5, label: 'Daily Short-term',     cat: 'swing'    },
-      { interval: '1wk', years: 5, label: 'Weekly Long-term',     cat: 'swing'    },
+      { interval: '5m',  days: 5,  label: '5 Min Scalp',         cat: 'intraday' },
+      { interval: '30m', days: 28, label: '30 Min Intraday',      cat: 'intraday' },
+      { interval: '1wk', years: 5, label: 'Weekly Long-term',      cat: 'swing'    },
     ];
 
-    const results = await Promise.all(timeframes.map(async (tf) => {
-      try {
-        let px = [], ts = [], vl = [];
+    // Build a map of cache availability FIRST so we know what needs fetching
+    const cacheMap = {};
+    const rangeMap = {
+      '5m': '7d', '15m': '30d', '30m': '30d', '1h': '60d', '1d': '5y', '1wk': '5y'
+    };
 
-        // --- FAST PATH: use existing rawCache if available for this TF ---
-        const tfRange = tf.days ? (tf.days <= 7 ? '7d' : tf.days <= 30 ? '30d' : '60d') : '5y';
-        const cacheKey = `${market}_${tf.interval}_${tfRange}_null_null`;
-        const cached = rawCache[cacheKey];
-        const cachedSymbol = cached ? cached.find(x => x.st.s === symbol) : null;
+    for (const tf of timeframes) {
+      const tfRange = rangeMap[tf.interval];
+      const cacheKey = `${market}_${tf.interval}_${tfRange}_null_null`;
+      const cached = rawCache[cacheKey];
+      const cachedSymbol = cached ? cached.find(x => x.st.s === symbol) : null;
+      cacheMap[tf.interval] = { hit: !!(cachedSymbol && cachedSymbol.px.length >= 5), px: cachedSymbol?.px || [], ts: cachedSymbol?.ts || [], vl: cachedSymbol?.vl || [] };
+    }
 
-        if (cachedSymbol && cachedSymbol.px.length >= 10) {
-          // Cache hit — instant, no Yahoo request needed
-          px = cachedSymbol.px;
-          ts = cachedSymbol.ts;
-          vl = cachedSymbol.vl;
-          console.log(`⚡ Deep cache hit: ${symbol} ${tf.interval}`);
-        } else {
-          // Cache miss — fetch from Yahoo Finance
+    // Identify which TFs need Yahoo fetches (cache misses)
+    const missed = timeframes.filter(tf => !cacheMap[tf.interval].hit);
+    const hitCount = timeframes.length - missed.length;
+
+    // Fetch MISSED ones in parallel with a concurrency limit of 3
+    const CONCURRENCY = 3;
+    for (let i = 0; i < missed.length; i += CONCURRENCY) {
+      const batch = missed.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(async (tf) => {
+        try {
           const d = new Date();
-          if (tf.days)  d.setDate(d.getDate() - tf.days);
-          if (tf.years) d.setFullYear(d.getFullYear() - tf.years);
+          if (tf.days) d.setDate(d.getDate() - (tf.days || 30));
+          if (tf.years) d.setFullYear(d.getFullYear() - (tf.years || 5));
+          if (tf.interval === '5m' && tf.days > 5) d.setDate(new Date().getDate() - 5);
 
+          console.log(`🌐 Deep fetch: ${symbol} ${tf.interval}`);
           const chart = await yahooFinance.chart(yahooSymbol, { interval: tf.interval, period1: d });
-          if (!chart || !chart.quotes || chart.quotes.length < 10) throw new Error('Insufficient data');
+          if (!chart || !chart.quotes || chart.quotes.length < 5) throw new Error('Insufficient data');
 
+          const px = [], ts = [], vl = [];
           for (const q of chart.quotes) {
-            if (q.close !== null && q.close !== undefined) {
-              px.push(q.close); ts.push(q.date.getTime()); vl.push(q.volume || 0);
-            }
+            if (q.close != null) { px.push(q.close); ts.push(q.date.getTime()); vl.push(q.volume || 0); }
           }
+          cacheMap[tf.interval] = { hit: true, px, ts, vl };
+          console.log(`✅ Deep fetch done: ${symbol} ${tf.interval} (${px.length} bars)`);
+        } catch (err) {
+          console.error(`❌ Deep fetch ${symbol} ${tf.interval}: ${err.message}`);
+          cacheMap[tf.interval] = { hit: false, px: [], ts: [], vl: [] };
         }
+      }));
+    }
 
+    // Now compute results from whatever we have (cache hits OR fresh fetches)
+    const results = timeframes.map(tf => {
+      const { hit, px, ts, vl } = cacheMap[tf.interval];
+      if (!hit || px.length < 5) {
+        return { interval: tf.interval, label: tf.label, cat: tf.cat, bars: 0, trades: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0, grade: 'X', signal: 'FLAT', signalDetails: '', score: -99, error: 'No data' };
+      }
+      try {
         const r = backtest(px, ts, vl, { ...params, interval: tf.interval });
         const { g } = getGrade(r);
         const score = (g === 'D') ? -1 : r.pf * (r.winRate / 100) * Math.min(Math.log(r.trades + 1), 3);
-
-        return { interval: tf.interval, label: tf.label, cat: tf.cat, bars: px.length,
-          trades: r.trades, winRate: r.winRate, pf: r.pf, netPct: r.netPct, maxDD: r.maxDD,
-          grade: g, signal: r.signal, signalDetails: r.signalDetails, sigE: r.sigE, sigTP: r.sigTP, sigSL: r.sigSL, score };
-      } catch (err) {
-        return { interval: tf.interval, label: tf.label, cat: tf.cat,
-          bars: 0, trades: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0,
-          grade: 'X', signal: 'FLAT', signalDetails: '', score: -99, error: err.message };
+        return { interval: tf.interval, label: tf.label, cat: tf.cat, bars: px.length, trades: r.trades, winRate: r.winRate, pf: r.pf, netPct: r.netPct, maxDD: r.maxDD, grade: g, signal: r.signal, signalDetails: r.signalDetails, sigE: r.sigE, sigTP: r.sigTP, sigSL: r.sigSL, score };
+      } catch (e) {
+        return { interval: tf.interval, label: tf.label, cat: tf.cat, bars: px.length, trades: 0, winRate: 0, pf: 0, netPct: 0, maxDD: 0, grade: 'X', signal: 'FLAT', signalDetails: '', score: -99, error: e.message };
       }
-    }));
-
+    });
 
     results.sort((a, b) => b.score - a.score);
     const validResults = results.filter(r => r.grade !== 'D' && r.grade !== 'X');
@@ -890,7 +948,7 @@ app.post('/api/deep-analysis', express.json(), async (req, res) => {
     const intradayBest = validResults.find(r => r.cat === 'intraday')?.interval;
     const swingBest    = validResults.find(r => r.cat === 'swing')?.interval;
 
-    res.json({ symbol, market, results, bestTimeframe, intradayBest, swingBest });
+    res.json({ symbol, market, results, bestTimeframe, intradayBest, swingBest, cacheHits: hitCount });
   } catch (err) {
     console.error('Deep analysis error:', err.message);
     res.status(500).json({ error: err.message });
@@ -899,15 +957,18 @@ app.post('/api/deep-analysis', express.json(), async (req, res) => {
 
 async function prewarmCache() {
   const niftyList  = [
-    { interval: '15m', range: '60d' },
+    { interval: '15m', range: '30d' }, // Reduced from 60d for stability
     { interval: '30m', range: '30d' },
     { interval: '1h',  range: '60d' },
     { interval: '1d',  range: '5y'  },
+    { interval: '1wk', range: '5y'  },
   ];
   const cryptoList = [
-    { interval: '15m', range: '60d' },
+    { interval: '15m', range: '30d' },
+    { interval: '30m', range: '30d' },
     { interval: '1h',  range: '60d' },
     { interval: '1d',  range: '5y'  },
+    { interval: '1wk', range: '5y'  },
   ];
 
   // Warm one market's intervals sequentially
@@ -925,11 +986,9 @@ async function prewarmCache() {
     }
   }
 
-  // Run BOTH markets in PARALLEL — crypto is ready in ~2s, nifty in ~8s
-  await Promise.all([
-    warmMarket('nifty',  niftyList),
-    warmMarket('crypto', cryptoList),
-  ]);
+  // Run BOTH markets sequentially to avoid overloading Yahoo or local network
+  await warmMarket('nifty',  niftyList);
+  await warmMarket('crypto', cryptoList);
 }
 
 
@@ -937,8 +996,15 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(3000, () => {
     console.log('Server is running on http://localhost:3000');
     prewarmCache();
-    // Auto-fetch in the background every 10 seconds
-    setInterval(prewarmCache, 10 * 60 * 1000); // every 10 minutes — avoid Yahoo Finance rate-limits
+    setInterval(() => {
+      // Only prewarm if no requests are in flight (simple mutex)
+      if (Object.keys(fetchPromises).length === 0) {
+        console.log('⏰ Background prewarm triggered...');
+        prewarmCache();
+      } else {
+        console.log('⏭ Skipping prewarm — requests in flight');
+      }
+    }, 10 * 60 * 1000); // every 10 minutes
   });
 }
 

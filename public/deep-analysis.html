@@ -144,11 +144,12 @@ const SYMBOL = params.get('symbol') || '';
 const MARKET = params.get('market') || 'nifty';
 let START_AMOUNT = parseFloat(params.get('amount') || '10000');
 
-document.getElementById('page-symbol').textContent = SYMBOL || 'Unknown';
-document.title = `${SYMBOL} Deep Analysis — TriSignal Pro`;
 document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('page-symbol');
+  if (el) el.textContent = SYMBOL || 'Unknown';
   const inp = document.getElementById('amount-input');
   if (inp) inp.value = START_AMOUNT;
+  document.title = `${SYMBOL} Deep Analysis — TriSignal Pro`;
 });
 
 // How many months of data each timeframe covers
@@ -194,13 +195,12 @@ function renderResults(data) {
   const intradayR = results.find(r => r.interval === intradayBest);
   const swingR    = results.find(r => r.interval === swingBest);
 
-  // Update header
   if (best && best.bars > 0) {
-    document.getElementById('page-meta').textContent = `Best timeframe: ${best.label} · Win Rate: ${best.winRate}% · PF: ${best.pf}`;
+    const metaEl = document.getElementById('page-meta');
+    if (metaEl) metaEl.textContent = `Best timeframe: ${best.label} · Win Rate: ${best.winRate}% · PF: ${best.pf}`;
   }
-
-  // Price from best result if available
-  document.getElementById('page-price').textContent = '';
+  const priceEl = document.getElementById('page-price');
+  if (priceEl) priceEl.textContent = '';
 
   let html = '';
 
