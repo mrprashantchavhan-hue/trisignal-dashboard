@@ -184,6 +184,190 @@ const STOCKS = [
   {s:'INDUSTOWER', n:'Indus Towers', sec:'Telecom'}
 ];
 
+const INTRADAY_STOCKS = [
+  // Bank & Finance
+  {s:'HDFCBANK', n:'HDFC Bank', sec:'Banking'},
+  {s:'ICICIBANK', n:'ICICI Bank', sec:'Banking'},
+  {s:'SBIN', n:'SBI', sec:'Banking'},
+  {s:'AXISBANK', n:'Axis Bank', sec:'Banking'},
+  {s:'KOTAKBANK', n:'Kotak Mahindra Bank', sec:'Banking'},
+  {s:'BANKBARODA', n:'Bank of Baroda', sec:'Banking'},
+  {s:'PNB', n:'Punjab National Bank', sec:'Banking'},
+  {s:'FEDERALBNK', n:'Federal Bank', sec:'Banking'},
+  {s:'INDUSINDBK', n:'IndusInd Bank', sec:'Banking'},
+  {s:'AUBANK', n:'AU Small Finance', sec:'Banking'},
+  {s:'CANBK', n:'Canara Bank', sec:'Banking'},
+  {s:'IDFCFIRSTB', n:'IDFC First Bank', sec:'Banking'},
+  {s:'YESBANK', n:'Yes Bank', sec:'Banking'},
+  {s:'BANDHANBNK', n:'Bandhan Bank', sec:'Banking'},
+  {s:'LICHSGFIN', n:'LIC Housing', sec:'NBFC'},
+
+  // IT Stocks
+  {s:'INFY', n:'Infosys', sec:'IT'},
+  {s:'TCS', n:'TCS', sec:'IT'},
+  {s:'WIPRO', n:'Wipro', sec:'IT'},
+  {s:'HCLTECH', n:'HCLTech', sec:'IT'},
+  {s:'TECHM', n:'Tech Mahindra', sec:'IT'},
+  {s:'LTIM', n:'LTIMindtree', sec:'IT'},
+  {s:'PERSISTENT', n:'Persistent Systems', sec:'IT'},
+  {s:'COFORGE', n:'Coforge', sec:'IT'},
+  {s:'MPHASIS', n:'Mphasis', sec:'IT'},
+  {s:'OFSS', n:'Oracle Financial', sec:'IT'},
+
+  // Energy & Power
+  {s:'RELIANCE', n:'Reliance Industries', sec:'Energy'},
+  {s:'ONGC', n:'ONGC', sec:'Energy'},
+  {s:'COALINDIA', n:'Coal India', sec:'Energy'},
+  {s:'NTPC', n:'NTPC', sec:'Power'},
+  {s:'POWERGRID', n:'Power Grid', sec:'Power'},
+  {s:'ADANIPOWER', n:'Adani Power', sec:'Power'},
+  {s:'TATAPOWER', n:'Tata Power', sec:'Power'},
+  {s:'NHPC', n:'NHPC', sec:'Power'},
+  {s:'SJVN', n:'SJVN', sec:'Power'},
+  {s:'BPCL', n:'BPCL', sec:'Energy'},
+  {s:'HINDPETRO', n:'HPCL', sec:'Energy'},
+  {s:'IOC', n:'IOC', sec:'Energy'},
+  {s:'GAIL', n:'GAIL', sec:'Energy'},
+  {s:'VEDL', n:'Vedanta', sec:'Metals'},
+  {s:'HINDZINC', n:'Hindustan Zinc', sec:'Metals'},
+
+  // Auto
+  {s:'TATAMOTORS', n:'Tata Motors', sec:'Auto'},
+  {s:'MARUTI', n:'Maruti Suzuki', sec:'Auto'},
+  {s:'M&M', n:'Mahindra & Mahindra', sec:'Auto'},
+  {s:'ASHOKLEY', n:'Ashok Leyland', sec:'Auto'},
+  {s:'BAJAJ-AUTO', n:'Bajaj Auto', sec:'Auto'},
+  {s:'EICHERMOT', n:'Eicher Motors', sec:'Auto'},
+  {s:'TVSMOTOR', n:'TVS Motor', sec:'Auto'},
+  {s:'HEROMOTOCO', n:'Hero MotoCorp', sec:'Auto'},
+  {s:'BHARATFORG', n:'Bharat Forge', sec:'Auto'},
+  {s:'BOSCHLTD', n:'Bosch', sec:'Auto'},
+
+  // Pharma
+  {s:'SUNPHARMA', n:'Sun Pharma', sec:'Pharma'},
+  {s:'CIPLA', n:'Cipla', sec:'Pharma'},
+  {s:'DRREDDY', n:'Dr. Reddy’s', sec:'Pharma'},
+  {s:'LUPIN', n:'Lupin', sec:'Pharma'},
+  {s:'AUROPHARMA', n:'Aurobindo Pharma', sec:'Pharma'},
+  {s:'DIVISLAB', n:'Divi’s Laboratories', sec:'Pharma'},
+  {s:'ALKEM', n:'Alkem Laboratories', sec:'Pharma'},
+  {s:'GLENMARK', n:'Glenmark Pharma', sec:'Pharma'},
+  {s:'TORNTPHARM', n:'Torrent Pharma', sec:'Pharma'},
+  {s:'BIOCON', n:'Biocon', sec:'Pharma'},
+
+  // Metal & Mining
+  {s:'TATASTEEL', n:'Tata Steel', sec:'Metals'},
+  {s:'JSWSTEEL', n:'JSW Steel', sec:'Metals'},
+  {s:'SAIL', n:'SAIL', sec:'Metals'},
+  {s:'JINDALSTEL', n:'Jindal Steel & Power', sec:'Metals'},
+  {s:'HINDALCO', n:'Hindalco', sec:'Metals'},
+  {s:'NMDC', n:'NMDC', sec:'Metals'},
+  {s:'MOIL', n:'MOIL', sec:'Metals'},
+  {s:'NATIONALUM', n:'National Aluminium', sec:'Metals'},
+  {s:'HINDCOPPER', n:'Hindustan Copper', sec:'Metals'},
+
+  // FMCG
+  {s:'ITC', n:'ITC', sec:'FMCG'},
+  {s:'HINDUNILVR', n:'Hindustan Unilever', sec:'FMCG'},
+  {s:'NESTLEIND', n:'Nestlé India', sec:'FMCG'},
+  {s:'BRITANNIA', n:'Britannia', sec:'FMCG'},
+  {s:'DABUR', n:'Dabur', sec:'FMCG'},
+  {s:'GODREJCP', n:'Godrej Consumer', sec:'FMCG'},
+  {s:'MARICO', n:'Marico', sec:'FMCG'},
+  {s:'COLPAL', n:'Colgate-Palmolive', sec:'FMCG'},
+  {s:'TATACONSUM', n:'Tata Consumer', sec:'FMCG'},
+  {s:'UNITDSPR', ys:'UNITDSPR.NS', n:'United Spirits', sec:'FMCG'},
+
+  // Telecom
+  {s:'BHARTIARTL', n:'Bharti Airtel', sec:'Telecom'},
+  {s:'IDEA', n:'Vodafone Idea', sec:'Telecom'},
+  {s:'TATACOMM', n:'Tata Communications', sec:'Telecom'},
+  {s:'INDUSTOWER', n:'Indus Towers', sec:'Telecom'},
+  {s:'RAILTEL', n:'RailTel', sec:'Telecom'},
+
+  // Infra
+  {s:'LT', n:'Larsen & Toubro', sec:'Infra'},
+  {s:'NBCC', n:'NBCC', sec:'Infra'},
+  {s:'IRB', n:'IRB Infra', sec:'Infra'},
+  {s:'KNRCON', n:'KNR Constructions', sec:'Infra'},
+  {s:'PNCINFRA', n:'PNC Infratech', sec:'Infra'},
+  {s:'NCC', n:'NCC', sec:'Infra'},
+  {s:'DBL', n:'Dilip Buildcon', sec:'Infra'},
+  {s:'GMRINFRA', n:'GMR Airports', sec:'Infra'},
+  {s:'IRCON', n:'IRCON', sec:'Infra'},
+  {s:'ENGINERSIN', n:'Engineers India', sec:'Infra'},
+
+  // Railway
+  {s:'IRCTC', n:'IRCTC', sec:'Consumer'},
+  {s:'RVNL', n:'RVNL', sec:'Infra'},
+  {s:'IRFC', n:'IRFC', sec:'Financial'},
+  {s:'TITAGARH', n:'Titagarh Rail', sec:'Infra'},
+  {s:'TEXRAIL', n:'Texmaco Rail', sec:'Infra'},
+  {s:'BEML', n:'BEML', sec:'Infra'},
+  {s:'JWL', n:'Jupiter Wagons', sec:'Infra'},
+  {s:'RITES', n:'RITES', sec:'Infra'},
+  {s:'CONCOR', n:'Container Corp', sec:'Infra'},
+
+  // PSU
+  {s:'RECLTD', n:'REC', sec:'Power'},
+  {s:'PFC', n:'Power Finance Corp', sec:'Power'},
+  {s:'BEL', n:'Bharat Electronics', sec:'Defense'},
+  {s:'HAL', n:'Hindustan Aeronautics', sec:'Defense'},
+  {s:'BDL', n:'Bharat Dynamics', sec:'Defense'},
+  {s:'BHEL', n:'Bharat Heavy Electricals', sec:'Power'},
+  {s:'SCI', n:'Shipping Corp', sec:'Energy'},
+  {s:'OIL', n:'Oil India', sec:'Energy'},
+  {s:'MAZDOCK', n:'Mazagon Dock', sec:'Defense'},
+  {s:'COCHINSHIP', n:'Cochin Shipyard', sec:'Defense'},
+
+  // Chemical
+  {s:'DEEPAKNTR', n:'Deepak Nitrite', sec:'Chemicals'},
+  {s:'SRF', n:'SRF', sec:'Chemicals'},
+  {s:'PIIND', n:'PI Industries', sec:'Chemicals'},
+  {s:'FLUOROCHEM', n:'Gujarat Fluorochemicals', sec:'Chemicals'},
+  {s:'NAVINFLUOR', n:'Navin Fluorine', sec:'Chemicals'},
+  {s:'TATACHEM', n:'Tata Chemicals', sec:'Chemicals'},
+  {s:'UPL', n:'UPL', sec:'Chemicals'},
+  {s:'COROMANDEL', n:'Coromandel', sec:'Chemicals'},
+  {s:'CHAMBLFERT', n:'Chambal Fertilisers', sec:'Chemicals'},
+  {s:'BALAMINES', n:'Balaji Amines', sec:'Chemicals'},
+
+  // Midcap
+  {s:'HFCL', n:'HFCL', sec:'Telecom'},
+  {s:'JPPOWER', n:'JP Power', sec:'Power'},
+  {s:'SUZLON', n:'Suzlon Energy', sec:'Power'},
+  {s:'RTNPOWER', n:'RattanIndia Power', sec:'Power'},
+  {s:'IREDA', n:'IREDA', sec:'Power'},
+  {s:'OLAELEC', n:'Ola Electric', sec:'Auto'},
+  {s:'HUDCO', n:'HUDCO', sec:'Financial'},
+  {s:'EASYTRIP', n:'Easy Trip Planners', sec:'Consumer'},
+  {s:'ZOMATO', n:'Zomato', sec:'Consumer'},
+  {s:'SWIGGY', n:'Swiggy', sec:'Consumer'},
+
+  // Retail
+  {s:'TRENT', n:'Trent', sec:'Consumer'},
+  {s:'DMART', n:'Avenue Supermarts', sec:'Consumer'},
+  {s:'ABFRL', n:'Aditya Birla Fashion', sec:'Consumer'},
+  {s:'VMART', n:'V-Mart Retail', sec:'Consumer'},
+  {s:'TITAN', n:'Titan Company', sec:'Consumer'},
+  {s:'KALYANKJIL', n:'Kalyan Jewellers', sec:'Consumer'},
+  {s:'METROBRAND', n:'Metro Brands', sec:'Consumer'},
+  {s:'RELAXO', n:'Relaxo Footwears', sec:'Consumer'},
+  {s:'BATAINDIA', n:'Bata India', sec:'Consumer'},
+  {s:'RAYMOND', n:'Raymond', sec:'Consumer'},
+
+  // High Beta
+  {s:'ADANIENT', n:'Adani Enterprises', sec:'Infra'},
+  {s:'ADANIPORTS', n:'Adani Ports', sec:'Infra'},
+  {s:'ADANIGREEN', n:'Adani Green', sec:'Power'},
+  {s:'ADANIENSOL', n:'Adani Energy Solutions', sec:'Power'},
+  {s:'BSE', n:'BSE', sec:'Financial'},
+  {s:'MCX', n:'MCX', sec:'Financial'},
+  {s:'PAYTM', n:'Paytm', sec:'Financial'},
+  {s:'ANGELONE', n:'Angel One', sec:'Financial'},
+  {s:'JIOFIN', n:'Jio Financial', sec:'Financial'}
+];
+
 const CRYPTO = [
   {s:'BTC-USD', n:'Bitcoin', sec:'Crypto'},
   {s:'ETH-USD', n:'Ethereum', sec:'Crypto'},
@@ -517,7 +701,7 @@ async function fetchRealtimeData(market, interval, range, period1, period2) {
     console.log(`Fetching raw Yahoo Finance data for ${cacheKey}...`);
     try {
       const newRawData = [];
-      const list = market === 'crypto' ? CRYPTO : STOCKS;
+      const list = market === 'crypto' ? CRYPTO : (['5m', '15m', '30m'].includes(interval) ? INTRADAY_STOCKS : STOCKS);
       const chunkSize = 15; // Reduced to avoid rate limits and timeouts
       for (let i = 0; i < list.length; i += chunkSize) {
         const chunk = list.slice(i, i + chunkSize);
