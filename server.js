@@ -648,7 +648,7 @@ function computeResults(cacheKey, params) {
       p: item.priceStr,
       chg: chgPct
     };
-  });
+  }).filter(stock => stock.netPct > 0);
 }
 
 app.post(['/api/screener', '/screener'], express.json(), async (req, res) => {
